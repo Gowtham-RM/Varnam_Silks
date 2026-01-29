@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Edit, Trash2, MoreHorizontal } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
@@ -19,13 +19,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { products } from '@/data/mockData';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
 import { toast } from 'sonner';
 
 const AdminProducts: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [productList, setProductList] = useState(products);
+  const [productList, setProductList] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchProducts = async () => {
+    try {
+      const { data } = await api.get('/products');
+      setProductList(data);
+    } catch (error) {
+      console.error('Failed to fetch products:', error);
+      toast.error('Failed to load products');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const filteredProducts = productList.filter(
     (product) =>
@@ -33,9 +50,17 @@ const AdminProducts: React.FC = () => {
       product.category.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
-    setProductList((prev) => prev.filter((p) => p.id !== id));
-    toast.success('Product deleted successfully');
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+
+    try {
+      await api.delete(`/products/${id}`);
+      setProductList((prev) => prev.filter((p) => p.id !== id));
+      toast.success('Product deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete product:', error);
+      toast.error('Failed to delete product');
+    }
   };
 
   return (
@@ -81,87 +106,95 @@ const AdminProducts: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
-                      <div>
-                        <p className="font-medium line-clamp-1">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {product.sizes.length} sizes • {product.colors.length} colors
-                        </p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="capitalize">{product.category}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">₹{product.price.toLocaleString()}</p>
-                      {product.originalPrice && (
-                        <p className="text-sm text-muted-foreground line-through">
-                          ₹{product.originalPrice.toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{product.stock}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        product.stock === 0
-                          ? 'bg-red-100 text-red-800'
-                          : product.stock < 10
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      )}
-                    >
-                      {product.stock === 0
-                        ? 'Out of Stock'
-                        : product.stock < 10
-                        ? 'Low Stock'
-                        : 'In Stock'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link to={`/admin/products/${product.id}/edit`}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </Link>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(product.id)}
-                          className="text-destructive focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    Loading products...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : filteredProducts.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No products found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredProducts.map((product) => (
+                  <TableRow key={product.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/100'}
+                          alt={product.name}
+                          className="h-12 w-12 rounded-lg object-cover"
+                        />
+                        <div>
+                          <p className="font-medium line-clamp-1">{product.name}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {product.sizes ? product.sizes.length : 0} sizes • {product.colors ? product.colors.length : 0} colors
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="capitalize">{product.category}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">₹{product.price.toLocaleString()}</p>
+                        {product.originalPrice && (
+                          <p className="text-sm text-muted-foreground line-through">
+                            ₹{product.originalPrice.toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{product.stock}</TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          product.stock === 0
+                            ? 'bg-red-100 text-red-800'
+                            : product.stock < 10
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-green-100 text-green-800'
+                        )}
+                      >
+                        {product.stock === 0
+                          ? 'Out of Stock'
+                          : product.stock < 10
+                            ? 'Low Stock'
+                            : 'In Stock'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link to={`/admin/products/${product.id}/edit`}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Edit
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(product.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-
-          {filteredProducts.length === 0 && (
-            <div className="py-12 text-center">
-              <p className="text-muted-foreground">No products found</p>
-            </div>
-          )}
         </div>
       </div>
     </AdminLayout>

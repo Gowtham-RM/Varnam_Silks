@@ -24,7 +24,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   // Check admin access
   React.useEffect(() => {
-    if (!isAuthenticated || !user?.isAdmin) {
+    if (!isAuthenticated || user?.role !== 'admin') {
       toast.error('Admin access required');
       navigate('/login');
     }
@@ -36,7 +36,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     navigate('/');
   };
 
-  if (!isAuthenticated || !user?.isAdmin) {
+  if (!isAuthenticated || user?.role !== 'admin') {
     return null;
   }
 
@@ -50,7 +50,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         )}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-6">
-          <Link to="/admin" className="font-display text-xl font-semibold">
+          <Link to="/admin" className="font-display text-xl font-semibold whitespace-nowrap">
             VARNAM SILKS Admin
           </Link>
           <Button
@@ -72,8 +72,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               className={cn(
                 'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
                 location.pathname === item.href
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                  ? 'bg-rose-600 text-white shadow-md'
+                  : 'text-muted-foreground hover:bg-rose-50 hover:text-rose-600'
               )}
             >
               <item.icon className="h-5 w-5" />
@@ -92,7 +92,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </Link>
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
           >
             <LogOut className="h-5 w-5" />
             Sign Out
@@ -126,7 +126,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               <p className="text-sm font-medium">{user.name}</p>
               <p className="text-xs text-muted-foreground">Administrator</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-sm font-semibold text-white shadow-md">
               {user.name.charAt(0)}
             </div>
           </div>

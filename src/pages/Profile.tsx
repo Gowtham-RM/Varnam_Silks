@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Package, MapPin, LogOut, Loader2 } from 'lucide-react';
+import { User, Package, MapPin, LogOut, Loader2, LayoutDashboard } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,7 @@ const Profile: React.FC = () => {
   const handleSaveProfile = async () => {
     setIsLoading(true);
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    
+
     updateProfile({
       name: formData.name,
       phone: formData.phone,
@@ -69,10 +69,18 @@ const Profile: React.FC = () => {
             <h1 className="font-display text-3xl font-semibold">My Account</h1>
             <p className="mt-1 text-muted-foreground">Manage your profile and preferences</p>
           </div>
-          <Button variant="outline" onClick={handleLogout} className="gap-2">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center gap-3">
+            {user?.role === 'admin' && (
+              <Button variant="default" onClick={() => navigate('/admin')} className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Admin Dashboard
+              </Button>
+            )}
+            <Button variant="outline" onClick={handleLogout} className="gap-2">
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <div className="mt-8">

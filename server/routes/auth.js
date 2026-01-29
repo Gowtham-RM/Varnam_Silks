@@ -49,7 +49,8 @@ router.post('/register', async (req, res) => {
                 id: savedUser._id,
                 name: savedUser.name,
                 email: savedUser.email,
-                role: savedUser.role
+                role: savedUser.role,
+                isAdmin: savedUser.role === 'admin'
             }
         });
     } catch (error) {
@@ -92,7 +93,8 @@ router.post('/login', async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                isAdmin: user.role === 'admin'
             }
         });
 

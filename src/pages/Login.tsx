@@ -20,7 +20,7 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -44,12 +44,16 @@ const Login: React.FC = () => {
     }
 
     setIsLoading(true);
-    const { success, error } = await login(email, password);
+    const { success, error, user } = await login(email, password);
     setIsLoading(false);
 
     if (success) {
       toast.success('Welcome back!');
-      navigate(from, { replace: true });
+      if (user?.role === 'admin' || user?.isAdmin) {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } else {
       toast.error(error || 'Login failed');
     }

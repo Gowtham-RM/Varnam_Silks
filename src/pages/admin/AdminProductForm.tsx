@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { products, categories, sizes, colors } from '@/data/mockData';
+import api from '@/lib/api';
 import { toast } from 'sonner';
 
 const AdminProductForm: React.FC = () => {
@@ -38,23 +39,31 @@ const AdminProductForm: React.FC = () => {
 
   useEffect(() => {
     if (isEditing) {
-      const product = products.find((p) => p.id === id);
-      if (product) {
-        setFormData({
-          name: product.name,
-          description: product.description,
-          price: product.price.toString(),
-          originalPrice: product.originalPrice?.toString() || '',
-          category: product.category,
-          stock: product.stock.toString(),
-          sizes: product.sizes,
-          colors: product.colors,
-          images: product.images,
-          featured: product.featured || false,
-        });
-      }
+      const fetchProduct = async () => {
+        try {
+          const { data } = await api.get(`/products/${id}`);
+          setFormData({
+            name: data.name,
+            description: data.description,
+            price: data.price.toString(),
+            originalPrice: data.originalPrice?.toString() || '',
+            category: data.category,
+            stock: data.stock.toString(),
+            sizes: data.sizes || [],
+            colors: data.colors || [],
+            images: data.images || [],
+            featured: data.featured || false,
+          });
+        } catch (error) {
+          console.error('Failed to fetch product:', error);
+          toast.error('Failed to load product details');
+          navigate('/admin/products');
+        }
+      };
+
+      fetchProduct();
     }
-  }, [id, isEditing]);
+  }, [id, isEditing, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -99,11 +108,29 @@ const AdminProductForm: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const productData = {
+        ...formData,
+        price: Number(formData.price),
+        originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
+        stock: Number(formData.stock),
+      };
 
-    toast.success(isEditing ? 'Product updated successfully' : 'Product created successfully');
-    navigate('/admin/products');
+      if (isEditing) {
+        await api.put(`/products/${id}`, productData);
+        toast.success('Product updated successfully');
+      } else {
+        await api.post('/products', productData);
+        toast.success('Product created successfully');
+      }
+
+      navigate('/admin/products');
+    } catch (error) {
+      console.error('Failed to save product:', error);
+      toast.error(isEditing ? 'Failed to update product' : 'Failed to create product');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -230,11 +257,10 @@ const AdminProductForm: React.FC = () => {
                       key={size}
                       type="button"
                       onClick={() => handleSizeToggle(size)}
-                      className={`rounded-lg border px-4 py-2 text-sm transition-all ${
-                        formData.sizes.includes(size)
-                          ? 'border-foreground bg-foreground text-background'
-                          : 'border-border hover:border-foreground'
-                      }`}
+                      className={`rounded-lg border px-4 py-2 text-sm transition-all ${formData.sizes.includes(size)
+                        ? 'border-foreground bg-foreground text-background'
+                        : 'border-border hover:border-foreground'
+                        }`}
                     >
                       {size}
                     </button>
@@ -261,12 +287,12 @@ const AdminProductForm: React.FC = () => {
                             color.toLowerCase() === 'white'
                               ? '#ffffff'
                               : color.toLowerCase() === 'black'
-                              ? '#1a1a1a'
-                              : color.toLowerCase() === 'beige'
-                              ? '#f5f5dc'
-                              : color.toLowerCase() === 'navy'
-                              ? '#000080'
-                              : color.toLowerCase(),
+                                ? '#1a1a1a'
+                                : color.toLowerCase() === 'beige'
+                                  ? '#f5f5dc'
+                                  : color.toLowerCase() === 'navy'
+                                    ? '#000080'
+                                    : color.toLowerCase(),
                         }}
                       />
                       <span className="text-sm">{color}</span>

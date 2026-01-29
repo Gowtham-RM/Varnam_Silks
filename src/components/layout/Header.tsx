@@ -79,6 +79,14 @@ const Header: React.FC = () => {
               {link.label}
             </Link>
           ))}
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin"
+              className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
+            >
+              Admin
+            </Link>
+          )}
         </nav>
 
         {/* Actions */}
@@ -174,6 +182,15 @@ const Header: React.FC = () => {
               {link.label}
             </Link>
           ))}
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin"
+              className="py-3 text-base font-medium text-foreground transition-colors hover:text-primary"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Admin Dashboard
+            </Link>
+          )}
           <div className="mt-4 border-t border-border pt-4">
             {isAuthenticated ? (
               <>
