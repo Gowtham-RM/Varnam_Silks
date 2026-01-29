@@ -16,7 +16,7 @@ const CategorySection: React.FC = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5 lg:gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
           {categories.map((category, index) => (
             <Link
               key={category.id}

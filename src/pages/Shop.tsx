@@ -75,7 +75,7 @@ const Shop: React.FC = () => {
 
     // Category filter
     if (filters.category) {
-      result = result.filter((p) => p.category === filters.category);
+      result = result.filter((p) => p.category.toLowerCase() === filters.category.toLowerCase());
     }
 
     // Price filter

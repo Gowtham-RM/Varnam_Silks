@@ -59,28 +59,18 @@ const Footer: React.FC = () => {
             <h4 className="font-display text-sm font-semibold uppercase tracking-wider">Shop</h4>
             <ul className="mt-4 space-y-3">
               <li>
-                <Link to="/shop?category=dresses" className="text-sm text-muted-foreground hover:text-foreground">
-                  Dresses
+                <Link to="/shop?category=men" className="text-sm text-muted-foreground hover:text-foreground">
+                  Men
                 </Link>
               </li>
               <li>
-                <Link to="/shop?category=tops" className="text-sm text-muted-foreground hover:text-foreground">
-                  Tops
+                <Link to="/shop?category=women" className="text-sm text-muted-foreground hover:text-foreground">
+                  Women
                 </Link>
               </li>
               <li>
-                <Link to="/shop?category=bottoms" className="text-sm text-muted-foreground hover:text-foreground">
-                  Bottoms
-                </Link>
-              </li>
-              <li>
-                <Link to="/shop?category=outerwear" className="text-sm text-muted-foreground hover:text-foreground">
-                  Outerwear
-                </Link>
-              </li>
-              <li>
-                <Link to="/shop?category=accessories" className="text-sm text-muted-foreground hover:text-foreground">
-                  Accessories
+                <Link to="/shop?category=kids" className="text-sm text-muted-foreground hover:text-foreground">
+                  Kids
                 </Link>
               </li>
             </ul>

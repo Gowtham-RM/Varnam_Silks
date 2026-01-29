@@ -24,8 +24,8 @@ const HeroSection: React.FC = () => {
               <span className="block text-primary">Signature Style</span>
             </h1>
             <p className="mt-6 text-lg text-muted-foreground">
-              Explore our curated collection of elegant dresses, timeless pieces, and 
-              sophisticated accessories designed for the modern woman.
+              Explore our curated collection for Men, Women and Kids.
+              Find your perfect look for every occasion.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link to="/shop">
@@ -34,13 +34,13 @@ const HeroSection: React.FC = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/shop?category=dresses">
+              <Link to="/shop?category=women">
                 <Button variant="heroOutline" size="xl">
-                  View Dresses
+                  Shop Women
                 </Button>
               </Link>
             </div>
-            
+
             {/* Stats */}
             <div className="mt-12 flex gap-12">
               <div>
@@ -59,7 +59,7 @@ const HeroSection: React.FC = () => {
           </div>
 
           {/* Image */}
-          <div 
+          <div
             className="relative animate-slide-up"
             style={{ animationDelay: '0.3s' }}
           >
@@ -90,7 +90,7 @@ const HeroSection: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Decorative elements */}
             <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full border-4 border-gold/30" />
             <div className="absolute -bottom-4 -left-4 h-32 w-32 rounded-full border-4 border-rose/30" />

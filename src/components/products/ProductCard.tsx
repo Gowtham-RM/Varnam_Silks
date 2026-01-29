@@ -4,6 +4,7 @@ import { Heart, ShoppingBag, Star } from 'lucide-react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
@@ -13,9 +14,11 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const [isHovered, setIsHovered] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+
+  const isWishlisted = isInWishlist(product.id);
 
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -31,7 +34,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const handleWishlist = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsWishlisted(!isWishlisted);
+    toggleWishlist(product);
   };
 
   return (
@@ -53,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
           )}
           onLoad={() => setImageLoaded(true)}
         />
-        
+
         {/* Loading skeleton */}
         {!imageLoaded && (
           <div className="absolute inset-0 animate-pulse bg-muted" />
@@ -150,12 +153,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
                   color.toLowerCase() === 'white'
                     ? '#ffffff'
                     : color.toLowerCase() === 'black'
-                    ? '#1a1a1a'
-                    : color.toLowerCase() === 'beige'
-                    ? '#f5f5dc'
-                    : color.toLowerCase() === 'navy'
-                    ? '#000080'
-                    : color.toLowerCase(),
+                      ? '#1a1a1a'
+                      : color.toLowerCase() === 'beige'
+                        ? '#f5f5dc'
+                        : color.toLowerCase() === 'navy'
+                          ? '#000080'
+                          : color.toLowerCase(),
               }}
               title={color}
             />

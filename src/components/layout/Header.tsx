@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -14,6 +15,7 @@ const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const { isAuthenticated, user, logout } = useAuth();
   const { getCartCount } = useCart();
+  const { wishlistCount } = useWishlist();
   const navigate = useNavigate();
   const cartCount = getCartCount();
 
@@ -35,9 +37,9 @@ const Header: React.FC = () => {
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/shop', label: 'Shop' },
-    { href: '/shop?category=dresses', label: 'Dresses' },
-    { href: '/shop?category=tops', label: 'Tops' },
-    { href: '/shop?category=accessories', label: 'Accessories' },
+    { href: '/shop?category=men', label: 'Men' },
+    { href: '/shop?category=women', label: 'Women' },
+    { href: '/shop?category=kids', label: 'Kids' },
   ];
 
   return (
@@ -101,9 +103,17 @@ const Header: React.FC = () => {
           </Button>
 
           {/* Wishlist */}
-          <Button variant="ghost" size="icon" className="hidden md:flex">
-            <Heart className="h-5 w-5" />
-          </Button>
+          {/* Wishlist */}
+          <Link to="/wishlist" className="hidden md:block">
+            <Button variant="ghost" size="icon" className="relative">
+              <Heart className="h-5 w-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
+                  {wishlistCount}
+                </span>
+              )}
+            </Button>
+          </Link>
 
           {/* Account */}
           {isAuthenticated ? (
