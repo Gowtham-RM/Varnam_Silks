@@ -9,6 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import api from '@/lib/api';
 
 const addressSchema = z.object({
   firstName: z.string().min(2, 'First name is required'),
@@ -69,20 +70,41 @@ const Checkout: React.FC = () => {
 
     setIsProcessing(true);
 
-    // Simulate Razorpay payment
-    // In production, this would integrate with actual Razorpay SDK
-    try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Create order payload
+    const orderData = {
+      user: user?.id,
+      items: items.map(item => ({
+        product: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price,
+        size: item.size,
+        color: item.color
+      })),
+      totalAmount: total,
+      shippingAddress: {
+        street: formData.street,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: 'India' // Defaulting for now
+      },
+      paymentMethod: 'Razorpay',
+      paymentStatus: 'paid'
+    };
 
-      // Mock successful payment
-      const orderId = `ORD-${Date.now()}`;
-      
+    try {
+      // Create order in backend
+      const { data: order } = await api.post('/orders', orderData);
+
+      // Simulate Payment Gateway Delay
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       clearCart();
       toast.success('Payment successful!');
-      navigate('/payment-success', { state: { orderId, total } });
+      navigate('/payment-success', { state: { orderId: order._id || order.id, total } });
     } catch (error) {
-      toast.error('Payment failed. Please try again.');
+      console.error('Checkout error:', error);
+      toast.error('Payment processing failed. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -244,7 +266,7 @@ const Checkout: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="sticky top-28 rounded-xl border border-border bg-card p-6">
               <h2 className="font-display text-lg font-semibold">Order Summary</h2>
-              
+
               {/* Items */}
               <div className="mt-4 max-h-64 space-y-4 overflow-y-auto">
                 {items.map((item) => (
@@ -252,6 +274,7 @@ const Checkout: React.FC = () => {
                     <img
                       src={item.product.images[0]}
                       alt={item.product.name}
+                      referrerPolicy="no-referrer"
                       className="h-16 w-12 rounded-md object-cover"
                     />
                     <div className="flex-1">

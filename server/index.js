@@ -7,6 +7,7 @@ import { dirname, join } from 'path';
 import productRoutes from './routes/products.js';
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
+import orderRoutes from './routes/orders.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,6 +43,7 @@ app.get('/api/health', (req, res) => {
 // API Routes
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 
 const PORT = process.env.PORT || 5000;

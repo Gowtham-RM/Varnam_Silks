@@ -17,7 +17,7 @@ const HeroSection: React.FC = () => {
           {/* Text content */}
           <div className="max-w-xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
             <p className="mb-4 text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              New Collection 2024
+              New Collection 2026
             </p>
             <h1 className="font-display text-5xl font-semibold leading-[1.1] tracking-tight md:text-6xl lg:text-7xl">
               Discover Your

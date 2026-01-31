@@ -28,6 +28,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const TestRecommendations = lazy(() => import("./pages/TestRecommendations"));
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => (
                   </Route>
 
                   {/* 404 */}
+                  <Route path="/test-rec" element={<TestRecommendations />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

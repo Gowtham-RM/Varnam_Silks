@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { mockOrders } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import api from '@/lib/api';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -27,7 +28,30 @@ const Orders: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
 
   // Filter orders for current user (in production, this would be fetched from API)
-  const userOrders = mockOrders.filter((order) => order.userId === user?.id || order.userId === '1');
+  const [userOrders, setUserOrders] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        if (user?.id) {
+          // Pass user ID in header (temporary auth mechanism matching backend)
+          const { data } = await api.get('/orders/my-orders', {
+            headers: { 'x-user-id': user.id }
+          });
+          setUserOrders(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isAuthenticated) {
+      fetchOrders();
+    }
+  }, [isAuthenticated, user]);
 
   if (!isAuthenticated) {
     return (
@@ -72,7 +96,7 @@ const Orders: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Order ID</p>
-                      <p className="font-medium">{order.id}</p>
+                      <p className="font-medium">{order._id}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Date</p>
@@ -90,10 +114,10 @@ const Orders: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge className={cn('capitalize', statusColors[order.orderStatus])}>
-                      {order.orderStatus}
+                    <Badge className={cn('capitalize', statusColors[order.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800')}>
+                      {order.status}
                     </Badge>
-                    <Badge className={cn('capitalize', paymentColors[order.paymentStatus])}>
+                    <Badge className={cn('capitalize', paymentColors[order.paymentStatus as keyof typeof paymentColors] || 'bg-gray-100 text-gray-800')}>
                       {order.paymentStatus}
                     </Badge>
                   </div>
@@ -102,21 +126,22 @@ const Orders: React.FC = () => {
                 {/* Order items */}
                 <div className="p-4">
                   <div className="space-y-4">
-                    {order.orderItems.map((item, index) => (
+                    {order.items.map((item: any, index: number) => (
                       <div key={index} className="flex gap-4">
                         <Link
-                          to={`/product/${item.productId}`}
+                          to={`/product/${item.product._id}`}
                           className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-muted"
                         >
                           <img
-                            src={item.product.images[0]}
+                            src={item.product.images?.[0] || '/placeholder.jpg'}
                             alt={item.product.name}
+                            referrerPolicy="no-referrer"
                             className="h-full w-full object-cover"
                           />
                         </Link>
                         <div className="flex-1">
                           <Link
-                            to={`/product/${item.productId}`}
+                            to={`/product/${item.product._id}`}
                             className="font-medium hover:text-primary"
                           >
                             {item.product.name}

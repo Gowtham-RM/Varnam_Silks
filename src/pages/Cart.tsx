@@ -54,6 +54,7 @@ const Cart: React.FC = () => {
                     <img
                       src={item.product.images[0]}
                       alt={item.product.name}
+                      referrerPolicy="no-referrer"
                       className="h-full w-full object-cover"
                     />
                   </Link>
@@ -119,7 +120,7 @@ const Cart: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="rounded-xl border border-border bg-card p-6">
               <h2 className="font-display text-lg font-semibold">Order Summary</h2>
-              
+
               <div className="mt-6 space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>

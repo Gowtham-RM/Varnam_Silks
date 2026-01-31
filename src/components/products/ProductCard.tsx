@@ -49,6 +49,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
         <img
           src={product.images[isHovered && product.images[1] ? 1 : 0]}
           alt={product.name}
+          referrerPolicy="no-referrer"
           className={cn(
             'h-full w-full object-cover transition-all duration-700',
             isHovered ? 'scale-105' : 'scale-100',

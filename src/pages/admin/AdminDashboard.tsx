@@ -121,14 +121,14 @@ const AdminDashboard: React.FC = () => {
                 {stats.recentOrders.length === 0 ? (
                   <p className="text-sm text-muted-foreground">No orders found</p>
                 ) : (
-                  stats.recentOrders.map((order) => (
-                    <div key={order.id} className="flex items-center justify-between">
+                  stats.recentOrders.map((order: any) => (
+                    <div key={order._id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
                           <Package className="h-5 w-5 text-muted-foreground" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium">{order.id.slice(-6).toUpperCase()}</p>
+                          <p className="text-sm font-medium">{order._id.slice(-6).toUpperCase()}</p>
                           <p className="text-xs text-muted-foreground">
                             {new Date(order.createdAt).toLocaleDateString()}
                           </p>
@@ -140,12 +140,12 @@ const AdminDashboard: React.FC = () => {
                           variant="secondary"
                           className={cn(
                             'capitalize text-xs',
-                            order.orderStatus === 'delivered' && 'bg-green-100 text-green-800',
-                            order.orderStatus === 'shipped' && 'bg-purple-100 text-purple-800',
-                            order.orderStatus === 'pending' && 'bg-yellow-100 text-yellow-800'
+                            order.status === 'delivered' && 'bg-green-100 text-green-800',
+                            order.status === 'shipped' && 'bg-purple-100 text-purple-800',
+                            order.status === 'pending' && 'bg-yellow-100 text-yellow-800'
                           )}
                         >
-                          {order.orderStatus}
+                          {order.status}
                         </Badge>
                       </div>
                     </div>
@@ -168,8 +168,8 @@ const AdminDashboard: React.FC = () => {
                 <p className="text-sm text-muted-foreground">All products are well stocked</p>
               ) : (
                 <div className="space-y-4">
-                  {stats.lowStockProducts.map((product) => (
-                    <div key={product.id} className="flex items-center justify-between">
+                  {stats.lowStockProducts.map((product: any) => (
+                    <div key={product._id || product.id} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <img
                           src={product.images[0]}

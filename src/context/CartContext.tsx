@@ -20,7 +20,12 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setItems(JSON.parse(savedCart));
+      try {
+        setItems(JSON.parse(savedCart));
+      } catch (error) {
+        console.error('Failed to parse cart from local storage', error);
+        localStorage.removeItem('cart');
+      }
     }
   }, []);
 

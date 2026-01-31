@@ -9,38 +9,58 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Product } from '@/types';
 import api from '@/lib/api';
+import { useWishlist } from '@/context/WishlistContext';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
+  const { toggleWishlist, isInWishlist } = useWishlist();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [alsoBought, setAlsoBought] = useState<Product[]>([]);
 
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchProductAndRelated = async () => {
       try {
         setLoading(true);
-        const { data } = await api.get(`/products/${id}`);
-        setProduct(data);
-        // Fetch related products or mock for now
-        // const related = await api.get(\`/products?category=\${data.category}\`);
-        // setRelatedProducts(related.data.filter((p: Product) => p.id !== id).slice(0, 4));
+        // 1. Fetch current product
+        const { data: currentProduct } = await api.get(`/products/${id}`);
+        setProduct(currentProduct);
+
+        // 2. Fetch ML-powered recommendations
+        const { data: related } = await api.get(`/products/${id}/recommendations`);
+        setRelatedProducts(related);
+
+        // 3. Fetch Collaborative Filtering results
+        const { data: bought } = await api.get(`/products/${id}/also-bought`);
+        if (Array.isArray(bought)) {
+          setAlsoBought(bought);
+        } else {
+          console.warn('Also bought data is not an array:', bought);
+          setAlsoBought([]);
+        }
       } catch (error) {
-        console.error('Failed to fetch product', error);
+        console.error('Failed to fetch product data', error);
+        toast.error('Failed to load product details');
       } finally {
         setLoading(false);
       }
     };
-    if (id) fetchProduct();
+
+    if (id) {
+      fetchProductAndRelated();
+      window.scrollTo(0, 0);
+    }
   }, [id]);
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [quantity, setQuantity] = useState(1);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+
+  const isWishlisted = product ? isInWishlist(product.id) : false;
 
   if (loading) {
     return <Layout><div className="container py-20 text-center">Loading...</div></Layout>;
@@ -111,6 +131,7 @@ const ProductDetail: React.FC = () => {
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}
+                referrerPolicy="no-referrer"
                 className="h-full w-full object-cover"
               />
               {product.images.length > 1 && (
@@ -148,7 +169,7 @@ const ProductDetail: React.FC = () => {
                       selectedImage === index ? 'border-foreground' : 'border-transparent opacity-60 hover:opacity-100'
                     )}
                   >
-                    <img src={image} alt="" className="h-full w-full object-cover" />
+                    <img src={image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -307,7 +328,7 @@ const ProductDetail: React.FC = () => {
                 Add to Cart
               </Button>
               <Button
-                onClick={() => setIsWishlisted(!isWishlisted)}
+                onClick={() => product && toggleWishlist(product)}
                 variant="outline"
                 size="xl"
               >
@@ -349,6 +370,19 @@ const ProductDetail: React.FC = () => {
             <h2 className="font-display text-2xl font-semibold">You May Also Like</h2>
             <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {relatedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        )}
+
+
+        {/* Also Bought Section */}
+        {alsoBought.length > 0 && (
+          <div className="mt-20">
+            <h2 className="font-display text-2xl font-semibold">Users Also Bought</h2>
+            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {alsoBought.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>

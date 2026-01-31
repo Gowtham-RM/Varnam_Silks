@@ -1,4 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+// ... (imports remain)
+
+// ...
+
+
 import { Search, Eye, ChevronDown } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -28,6 +34,7 @@ import { mockOrders } from '@/data/mockData';
 import { Order } from '@/types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import api from '@/lib/api';
 
 const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'] as const;
 
@@ -48,20 +55,38 @@ const paymentColors = {
 
 const AdminOrders: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [orders, setOrders] = useState(mockOrders);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchOrders = async () => {
+    try {
+      const { data } = await api.get('/orders');
+      setOrders(data);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+      toast.error('Failed to load orders');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
 
   const filteredOrders = orders.filter(
     (order) =>
-      order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.shippingAddress.city.toLowerCase().includes(searchQuery.toLowerCase())
+      order._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      order.shippingAddress?.city?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleStatusChange = (orderId: string, newStatus: Order['orderStatus']) => {
+  const handleStatusChange = (orderId: string, newStatus: string) => {
+    // In a real app, this would be an API call
     setOrders((prev) =>
       prev.map((order) =>
-        order.id === orderId
-          ? { ...order, orderStatus: newStatus, updatedAt: new Date().toISOString() }
+        order._id === orderId
+          ? { ...order, status: newStatus, updatedAt: new Date().toISOString() }
           : order
       )
     );
@@ -105,9 +130,15 @@ const AdminOrders: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-24 text-center">
+                    Loading orders...
+                  </TableCell>
+                </TableRow>
+              ) : filteredOrders.map((order) => (
+                <TableRow key={order._id}>
+                  <TableCell className="font-medium">{order._id.slice(-6).toUpperCase()}</TableCell>
                   <TableCell>
                     {new Date(order.createdAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
@@ -116,21 +147,16 @@ const AdminOrders: React.FC = () => {
                     })}
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <p className="text-sm">{order.shippingAddress.city}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {order.shippingAddress.state}
-                      </p>
-                    </div>
+                    {order.user?.name || 'Guest'}
                   </TableCell>
-                  <TableCell>{order.orderItems.length} items</TableCell>
+                  <TableCell>{order.items?.length || 0} items</TableCell>
                   <TableCell className="font-medium">
                     ₹{order.totalAmount.toLocaleString()}
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"
-                      className={cn('capitalize', paymentColors[order.paymentStatus])}
+                      className={cn('capitalize', paymentColors[order.paymentStatus as keyof typeof paymentColors] || 'bg-gray-100')}
                     >
                       {order.paymentStatus}
                     </Badge>
@@ -141,9 +167,9 @@ const AdminOrders: React.FC = () => {
                         <Button variant="ghost" size="sm" className="gap-1">
                           <Badge
                             variant="secondary"
-                            className={cn('capitalize', statusColors[order.orderStatus])}
+                            className={cn('capitalize', statusColors[order.status as keyof typeof statusColors] || 'bg-gray-100')}
                           >
-                            {order.orderStatus}
+                            {order.status}
                           </Badge>
                           <ChevronDown className="h-4 w-4" />
                         </Button>
@@ -152,7 +178,7 @@ const AdminOrders: React.FC = () => {
                         {statusOptions.map((status) => (
                           <DropdownMenuItem
                             key={status}
-                            onClick={() => handleStatusChange(order.id, status)}
+                            onClick={() => handleStatusChange(order._id, status)}
                             className="capitalize"
                           >
                             {status}
@@ -188,7 +214,7 @@ const AdminOrders: React.FC = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="font-display">
-              Order {selectedOrder?.id}
+              Order {selectedOrder?._id.slice(-6).toUpperCase()}
             </DialogTitle>
           </DialogHeader>
           {selectedOrder && (
@@ -200,10 +226,10 @@ const AdminOrders: React.FC = () => {
                   <Badge
                     className={cn(
                       'mt-1 capitalize',
-                      statusColors[selectedOrder.orderStatus]
+                      statusColors[selectedOrder.status as keyof typeof statusColors]
                     )}
                   >
-                    {selectedOrder.orderStatus}
+                    {selectedOrder.status}
                   </Badge>
                 </div>
                 <div>
@@ -211,7 +237,7 @@ const AdminOrders: React.FC = () => {
                   <Badge
                     className={cn(
                       'mt-1 capitalize',
-                      paymentColors[selectedOrder.paymentStatus]
+                      paymentColors[selectedOrder.paymentStatus as keyof typeof paymentColors]
                     )}
                   >
                     {selectedOrder.paymentStatus}
@@ -229,15 +255,15 @@ const AdminOrders: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-3">Order Items</h4>
                 <div className="space-y-3">
-                  {selectedOrder.orderItems.map((item, index) => (
+                  {selectedOrder.items?.map((item: any, index: number) => (
                     <div key={index} className="flex items-center gap-4">
                       <img
-                        src={item.product.images[0]}
-                        alt={item.product.name}
+                        src={item.product?.images?.[0]}
+                        alt={item.product?.name}
                         className="h-16 w-12 rounded-lg object-cover"
                       />
                       <div className="flex-1">
-                        <p className="font-medium">{item.product.name}</p>
+                        <p className="font-medium">{item.product?.name}</p>
                         <p className="text-sm text-muted-foreground">
                           Size: {item.size} • Color: {item.color} • Qty: {item.quantity}
                         </p>
@@ -254,11 +280,11 @@ const AdminOrders: React.FC = () => {
               <div>
                 <h4 className="font-medium mb-2">Shipping Address</h4>
                 <p className="text-sm text-muted-foreground">
-                  {selectedOrder.shippingAddress.street}
+                  {selectedOrder.shippingAddress?.street}
                   <br />
-                  {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}
+                  {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state}
                   <br />
-                  {selectedOrder.shippingAddress.zipCode}, {selectedOrder.shippingAddress.country}
+                  {selectedOrder.shippingAddress?.zipCode}, {selectedOrder.shippingAddress?.country}
                 </p>
               </div>
 

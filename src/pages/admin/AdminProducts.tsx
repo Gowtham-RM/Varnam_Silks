@@ -126,6 +126,7 @@ const AdminProducts: React.FC = () => {
                         <img
                           src={product.images && product.images.length > 0 ? product.images[0] : 'https://placehold.co/100'}
                           alt={product.name}
+                          referrerPolicy="no-referrer"
                           className="h-12 w-12 rounded-lg object-cover"
                         />
                         <div>

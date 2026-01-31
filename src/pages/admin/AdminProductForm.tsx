@@ -91,9 +91,16 @@ const AdminProductForm: React.FC = () => {
   };
 
   const handleImageAdd = () => {
-    const url = prompt('Enter image URL:');
+    let url = prompt('Enter image URL:');
     if (url) {
-      setFormData((prev) => ({ ...prev, images: [...prev.images, url] }));
+      // Auto-convert Google Drive view links to direct links
+      if (url.includes('drive.google.com') && url.includes('/file/d/')) {
+        const idMatch = url.match(/\/file\/d\/([^/]+)/);
+        if (idMatch && idMatch[1]) {
+          url = `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+        }
+      }
+      setFormData((prev) => ({ ...prev, images: [...prev.images, url as string] }));
     }
   };
 
@@ -114,6 +121,7 @@ const AdminProductForm: React.FC = () => {
         price: Number(formData.price),
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
         stock: Number(formData.stock),
+        image: formData.images[0] || '',
       };
 
       if (isEditing) {
@@ -313,6 +321,7 @@ const AdminProductForm: React.FC = () => {
                     <img
                       src={image}
                       alt=""
+                      referrerPolicy="no-referrer"
                       className="h-full w-full rounded-lg object-cover"
                     />
                     <button
@@ -336,17 +345,8 @@ const AdminProductForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Featured */}
-          <div className="flex items-center gap-3">
-            <Checkbox
-              id="featured"
-              checked={formData.featured}
-              onCheckedChange={(checked) =>
-                setFormData((prev) => ({ ...prev, featured: checked as boolean }))
-              }
-            />
-            <Label htmlFor="featured">Feature this product on homepage</Label>
-          </div>
+
+
 
           {/* Actions */}
           <div className="flex gap-4">
