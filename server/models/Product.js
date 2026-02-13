@@ -23,6 +23,16 @@ const productSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  subCategory: {
+    type: String,
+    required: true
+  },
+  sizeType: {
+    type: String,
+    required: true,
+    enum: ['Alpha', 'Numeric', 'Kids', 'Saree'],
+    default: 'Alpha'
+  },
   image: {
     type: String,
     required: true
@@ -31,11 +41,41 @@ const productSchema = new mongoose.Schema({
     type: String
   }],
   sizes: [{
-    type: String
+    size: {
+      type: String,
+      required: true
+    },
+    colors: [{
+      color: {
+        type: String,
+        required: true
+      },
+      stock: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      inStock: {
+        type: Boolean,
+        default: true
+      }
+    }]
   }],
   colors: [{
     type: String
   }],
+  fit: {
+    type: String
+  },
+  pattern: {
+    type: String
+  },
+  borderType: {
+    type: String
+  },
+  occasion: {
+    type: String
+  },
   stock: {
     type: Number,
     default: 0,

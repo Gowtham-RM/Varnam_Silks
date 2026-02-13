@@ -4,9 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { FilterState } from '@/types';
-import { categories, sizes, colors } from '@/data/mockData';
+import { categories, colors } from '@/data/mockData';
+import { SIZE_STANDARDS } from '@/data/sizeStandards';
+
+import { getProductAttributes } from '@/data/attributes';
+import { NAV_ITEMS } from '@/data/navigation';
 import { cn } from '@/lib/utils';
+import { useSearchParams } from 'react-router-dom';
 
 interface ProductFiltersProps {
   filters: FilterState;
@@ -19,8 +31,32 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   onFilterChange,
   maxPrice,
 }) => {
+  const [searchParams] = useSearchParams();
+  const subCategory = searchParams.get('sub') || '';
+  const attributesConfig = getProductAttributes(filters.category, subCategory);
+
+  const handleAttributeToggle = (type: keyof NonNullable<FilterState['attributes']>, value: string) => {
+    const currentAttributes = filters.attributes || {};
+    const currentValues = currentAttributes[type] || [];
+
+    const newValues = currentValues.includes(value)
+      ? currentValues.filter((v) => v !== value)
+      : [...currentValues, value];
+
+    onFilterChange({
+      ...filters,
+      attributes: {
+        ...currentAttributes,
+        [type]: newValues,
+      },
+    });
+  };
   const handleCategoryChange = (category: string) => {
-    onFilterChange({ ...filters, category });
+    onFilterChange({ ...filters, category, subCategory: '' });
+  };
+
+  const handleSubCategoryChange = (subCategory: string) => {
+    onFilterChange({ ...filters, subCategory });
   };
 
   const handlePriceChange = (value: number[]) => {
@@ -44,17 +80,86 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
   const clearFilters = () => {
     onFilterChange({
       category: '',
+      subCategory: '',
       priceRange: [0, maxPrice],
       sizes: [],
       colors: [],
+      attributes: {},
       sortBy: 'newest',
     });
   };
 
+  // Helper to get subcategories for the selected category
+  const getSubCategories = () => {
+    if (!filters.category) return [];
+
+    // Find the category in NAV_ITEMS (case-insensitive)
+    const categoryItem = NAV_ITEMS.find(
+      item => item.label.toLowerCase() === filters.category.toLowerCase()
+    );
+
+    if (!categoryItem || !categoryItem.columns) return [];
+
+    // Flatten all columns to get all subcategory items
+    return categoryItem.columns.flatMap(col => col.items).map(item => {
+      // Extract 'sub' param from href
+      const url = new URL(item.href, 'http://dummy.com');
+      return {
+        label: item.label,
+        value: url.searchParams.get('sub') || ''
+      };
+    }).filter(item => item.value);
+  };
+
+  const subCategories = getSubCategories();
+
+  // Helper to determine size standard based on category
+  const getSizeStandard = () => {
+    const cat = filters.category.toLowerCase();
+    const sub = filters.subCategory?.toLowerCase() || '';
+
+    if (cat === 'men') {
+      if (sub.includes('innerwear')) {
+        return SIZE_STANDARDS.MenInnerwear;
+      }
+      if (sub.includes('trousers') || sub.includes('jeans') || sub.includes('track-pants')) {
+        return SIZE_STANDARDS.Numeric;
+      }
+      return SIZE_STANDARDS.Alpha;
+    }
+
+    if (cat === 'women') {
+      if (sub.includes('saree') || sub === 'sarees' || sub.includes('dupattas')) {
+        return SIZE_STANDARDS.Saree;
+      }
+      if (sub.includes('bras') || sub.includes('panties') || sub.includes('sleepwear')) {
+        return SIZE_STANDARDS.Innerwear;
+      }
+      if (sub.includes('jeans') || sub.includes('leggings') || sub.includes('palazzos') || sub.includes('skirts')) {
+        return SIZE_STANDARDS.Numeric; // Assuming bottomwear uses numeric, or could be Alpha based on specific standard
+      }
+      return SIZE_STANDARDS.Alpha;
+    }
+
+    if (cat === 'kids') {
+      if (sub.includes('innerwear')) {
+        return SIZE_STANDARDS.Innerwear;
+      }
+      return SIZE_STANDARDS.Kids;
+    }
+
+    // Default to showing Alpha if no specific category or all
+    return SIZE_STANDARDS.Alpha;
+  };
+
+  const currentSizeStandard = getSizeStandard();
+
   const hasActiveFilters =
     filters.category ||
+    filters.subCategory ||
     filters.sizes.length > 0 ||
     filters.colors.length > 0 ||
+    (filters.attributes && Object.values(filters.attributes).some(arr => arr && arr.length > 0)) ||
     filters.priceRange[0] > 0 ||
     filters.priceRange[1] < maxPrice;
 
@@ -65,32 +170,48 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
         <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">
           Category
         </h4>
-        <div className="space-y-2">
-          <button
-            onClick={() => handleCategoryChange('')}
-            className={cn(
-              'block w-full text-left text-sm transition-colors',
-              filters.category === '' ? 'font-medium text-foreground' : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            All Products
-          </button>
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => handleCategoryChange(category.slug)}
-              className={cn(
-                'block w-full text-left text-sm transition-colors',
-                filters.category === category.slug
-                  ? 'font-medium text-foreground'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              {category.name}
-            </button>
-          ))}
-        </div>
+        <Select
+          value={filters.category}
+          onValueChange={(value) => handleCategoryChange(value === 'all' ? '' : value)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Products</SelectItem>
+            {categories.map((category) => (
+              <SelectItem key={category.id} value={category.slug}>
+                {category.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
+      {/* Sub Categories (Dynamic) */}
+      {filters.category && subCategories.length > 0 && (
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">
+            Sub Category
+          </h4>
+          <Select
+            value={filters.subCategory || 'all'}
+            onValueChange={(value) => handleSubCategoryChange(value === 'all' ? '' : value)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder={`All ${filters.category}`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All {filters.category}</SelectItem>
+              {subCategories.map((sub) => (
+                <SelectItem key={sub.value} value={sub.value}>
+                  {sub.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Price Range */}
       <div>
@@ -115,25 +236,118 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
         <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">
           Size
         </h4>
-        <div className="flex flex-wrap gap-2">
-          {sizes.map((size) => (
-            <button
-              key={size}
-              onClick={() => handleSizeToggle(size)}
-              className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-md border text-sm transition-all',
-                filters.sizes.includes(size)
-                  ? 'border-foreground bg-foreground text-background'
-                  : 'border-border hover:border-foreground'
-              )}
-            >
-              {size}
-            </button>
-          ))}
+        <div className="space-y-4">
+          <div>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">{currentSizeStandard.label}</p>
+            <div className="flex flex-wrap gap-2">
+              {currentSizeStandard.sizes.map((size) => (
+                <button
+                  key={size}
+                  onClick={() => handleSizeToggle(size)}
+                  className={cn(
+                    'flex h-10 min-w-[2.5rem] items-center justify-center rounded-md border px-2 text-sm transition-all',
+                    filters.sizes.includes(size)
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-border hover:border-foreground'
+                  )}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Colors */}
+
+
+      {/* Dynamic Attributes */}
+      {attributesConfig.fabric.show && (
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">Fabric</h4>
+          <div className="space-y-3">
+            {attributesConfig.fabric.options.map((option) => (
+              <label key={option} className="flex cursor-pointer items-center gap-3">
+                <Checkbox
+                  checked={filters.attributes?.fabric?.includes(option) ?? false}
+                  onCheckedChange={() => handleAttributeToggle('fabric', option)}
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attributesConfig.fit.show && (
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">Fit</h4>
+          <div className="space-y-3">
+            {attributesConfig.fit.options.map((option) => (
+              <label key={option} className="flex cursor-pointer items-center gap-3">
+                <Checkbox
+                  checked={filters.attributes?.fit?.includes(option) ?? false}
+                  onCheckedChange={() => handleAttributeToggle('fit', option)}
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attributesConfig.pattern.show && (
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">Pattern</h4>
+          <div className="space-y-3">
+            {attributesConfig.pattern.options.map((option) => (
+              <label key={option} className="flex cursor-pointer items-center gap-3">
+                <Checkbox
+                  checked={filters.attributes?.pattern?.includes(option) ?? false}
+                  onCheckedChange={() => handleAttributeToggle('pattern', option)}
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attributesConfig.borderType.show && (
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">Border Type</h4>
+          <div className="space-y-3">
+            {attributesConfig.borderType.options.map((option) => (
+              <label key={option} className="flex cursor-pointer items-center gap-3">
+                <Checkbox
+                  checked={filters.attributes?.borderType?.includes(option) ?? false}
+                  onCheckedChange={() => handleAttributeToggle('borderType', option)}
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {attributesConfig.occasion.show && (
+        <div>
+          <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">Occasion</h4>
+          <div className="space-y-3">
+            {attributesConfig.occasion.options.map((option) => (
+              <label key={option} className="flex cursor-pointer items-center gap-3">
+                <Checkbox
+                  checked={filters.attributes?.occasion?.includes(option) ?? false}
+                  onCheckedChange={() => handleAttributeToggle('occasion', option)}
+                />
+                <span className="text-sm">{option}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Colors (Moved to bottom) */}
       <div>
         <h4 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider">
           Color
@@ -155,12 +369,12 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                     color.toLowerCase() === 'white'
                       ? '#ffffff'
                       : color.toLowerCase() === 'black'
-                      ? '#1a1a1a'
-                      : color.toLowerCase() === 'beige'
-                      ? '#f5f5dc'
-                      : color.toLowerCase() === 'navy'
-                      ? '#000080'
-                      : color.toLowerCase(),
+                        ? '#1a1a1a'
+                        : color.toLowerCase() === 'beige'
+                          ? '#f5f5dc'
+                          : color.toLowerCase() === 'navy'
+                            ? '#000080'
+                            : color.toLowerCase(),
                 }}
               />
               <span className="text-sm">{color}</span>

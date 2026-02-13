@@ -63,11 +63,36 @@ router.post('/', async (req, res) => {
             if (!product) {
                 return res.status(404).json({ message: `Product ${item.product} not found` });
             }
-            if (product.stock < item.quantity) {
-                return res.status(400).json({ message: `Insufficient stock for ${product.name}` });
+
+            // Find the specific SKU (Size + Color)
+            const sizeData = product.sizes.find(s => s.size === item.size);
+            if (!sizeData) {
+                return res.status(400).json({ message: `Size ${item.size} not found for ${product.name}` });
             }
-            // Reduce stock
+
+            const colorData = sizeData.colors.find(c => c.color === item.color);
+            if (!colorData) {
+                return res.status(400).json({ message: `Color ${item.color} not available for ${product.name} ${item.size}` });
+            }
+
+            if (colorData.stock < item.quantity) {
+                return res.status(400).json({ message: `Insufficient stock for ${product.name} (${item.size}, ${item.color})` });
+            }
+
+            // Reduce SKU stock
+            colorData.stock -= item.quantity;
+
+            // Reduce total product stock
             product.stock -= item.quantity;
+
+            // Mark as out of stock if 0
+            if (colorData.stock === 0) {
+                colorData.inStock = false;
+            }
+            if (product.stock === 0) {
+                product.inStock = false;
+            }
+
             await product.save();
         }
 

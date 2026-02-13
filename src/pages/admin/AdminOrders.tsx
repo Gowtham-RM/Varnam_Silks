@@ -96,22 +96,24 @@ const AdminOrders: React.FC = () => {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="font-display text-3xl font-semibold">Orders</h1>
-          <p className="mt-1 text-muted-foreground">
-            Manage and track all orders
-          </p>
-        </div>
+        <div className="sticky top-[64px] z-20 -mx-4 -mt-4 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:-mx-8 lg:px-8">
+          <div>
+            <h1 className="font-display text-3xl font-semibold">Orders</h1>
+            <p className="mt-1 text-muted-foreground">
+              Manage and track all orders
+            </p>
+          </div>
 
-        {/* Search */}
-        <div className="relative max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search orders..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+          {/* Search */}
+          <div className="relative mt-4 max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search orders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
 
         {/* Orders table */}

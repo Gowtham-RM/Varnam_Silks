@@ -8,6 +8,14 @@ import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { NAV_ITEMS } from '@/data/navigation';
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 
 const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -34,13 +42,7 @@ const Header: React.FC = () => {
     }
   };
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/shop', label: 'Shop' },
-    { href: '/shop?category=men', label: 'Men' },
-    { href: '/shop?category=women', label: 'Women' },
-    { href: '/shop?category=kids', label: 'Kids' },
-  ];
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -71,15 +73,51 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Desktop navigation */}
-        <nav className="hidden md:flex items-center gap-8">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </Link>
+        <nav className="hidden h-full md:flex items-center gap-8">
+          <Link
+            to="/shop"
+            className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Shop
+          </Link>
+          {NAV_ITEMS.map((item) => (
+            <div key={item.label} className="group flex h-full items-center">
+              <Link
+                to={item.href}
+                className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+
+              {/* Mega Menu Dropdown */}
+              {item.columns && (
+                <div className="absolute left-0 top-full hidden w-full border-t border-border bg-background shadow-lg group-hover:block animate-in fade-in zoom-in-95 duration-200">
+                  <div className="container py-8">
+                    <div className="grid grid-cols-4 gap-8">
+                      {item.columns.map((column) => (
+                        <div key={column.title}>
+                          <h3 className="mb-4 font-display text-sm font-semibold uppercase tracking-wider text-foreground">
+                            {column.title}
+                          </h3>
+                          <ul className="space-y-2">
+                            {column.items.map((subItem) => (
+                              <li key={subItem.label}>
+                                <Link
+                                  to={subItem.href}
+                                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                                >
+                                  {subItem.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
           {user?.role === 'admin' && (
             <Link
@@ -181,27 +219,74 @@ const Header: React.FC = () => {
           isMenuOpen ? 'visible opacity-100' : 'invisible opacity-0'
         )}
       >
-        <nav className="container flex flex-col py-4">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              to={link.href}
-              className="py-3 text-base font-medium text-foreground transition-colors hover:text-primary"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="container flex flex-col py-4 h-[calc(100vh-4rem)] overflow-y-auto">
+          {/* Static Links */}
+          <Link
+            to="/"
+            className="border-b py-4 text-base font-medium transition-colors hover:text-primary"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Home
+          </Link>
+          <Link
+            to="/shop"
+            className="border-b py-4 text-base font-medium transition-colors hover:text-primary"
+            onClick={() => setIsMenuOpen(false)}
+          >
+            Shop
+          </Link>
+
+          {/* Dynamic Nested Menu */}
+          <Accordion type="single" collapsible className="w-full">
+            {NAV_ITEMS.map((item) => (
+              <AccordionItem key={item.label} value={item.label}>
+                <AccordionTrigger className="text-base font-medium">
+                  {item.label}
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="flex flex-col space-y-4 pl-4">
+                    <Link
+                      to={item.href}
+                      className="text-sm font-medium text-primary"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Shop All {item.label}
+                    </Link>
+                    {item.columns?.map((column) => (
+                      <div key={column.title} className="space-y-2">
+                        <h4 className="font-medium text-foreground">{column.title}</h4>
+                        <ul className="space-y-2 border-l pl-4">
+                          {column.items.map((subItem) => (
+                            <li key={subItem.label}>
+                              <Link
+                                to={subItem.href}
+                                className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                                onClick={() => setIsMenuOpen(false)}
+                              >
+                                {subItem.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+
           {user?.role === 'admin' && (
             <Link
               to="/admin"
-              className="py-3 text-base font-medium text-foreground transition-colors hover:text-primary"
+              className="border-b py-4 text-base font-medium transition-colors hover:text-primary text-primary"
               onClick={() => setIsMenuOpen(false)}
             >
               Admin Dashboard
             </Link>
           )}
-          <div className="mt-4 border-t border-border pt-4">
+
+          <div className="mt-auto border-t border-border pt-4">
             {isAuthenticated ? (
               <>
                 <Link

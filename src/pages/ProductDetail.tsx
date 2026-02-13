@@ -226,41 +226,80 @@ const ProductDetail: React.FC = () => {
               {product.description}
             </p>
 
+            {/* Product Specifications */}
+            <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div>
+                <span className="font-medium text-foreground">Fabric:</span> <span className="text-muted-foreground">{product.fabric || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Pattern:</span> <span className="text-muted-foreground">{product.pattern || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Fit:</span> <span className="text-muted-foreground">{product.fit || 'Regular'}</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Occasion:</span> <span className="text-muted-foreground">{product.occasion || 'Casual'}</span>
+              </div>
+              <div>
+                <span className="font-medium text-foreground">Type:</span> <span className="text-muted-foreground">{product.subCategory}</span>
+              </div>
+            </div>
+
             {/* Color selection */}
             <div className="mt-8">
-              <p className="mb-3 text-sm font-medium">
-                Color: <span className="font-normal text-muted-foreground">{selectedColor || 'Select a color'}</span>
-              </p>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-medium">
+                  Color: <span className="font-normal text-muted-foreground">{selectedColor || 'Select a color'}</span>
+                </p>
+              </div>
               <div className="flex flex-wrap gap-3">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={cn(
-                      'flex h-10 items-center gap-2 rounded-lg border px-4 text-sm transition-all',
-                      selectedColor === color
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-border hover:border-foreground'
-                    )}
-                  >
-                    <span
-                      className="h-4 w-4 rounded-full border border-border"
-                      style={{
-                        backgroundColor:
-                          color.toLowerCase() === 'white'
-                            ? '#ffffff'
-                            : color.toLowerCase() === 'black'
-                              ? '#1a1a1a'
-                              : color.toLowerCase() === 'beige'
-                                ? '#f5f5dc'
-                                : color.toLowerCase() === 'navy'
-                                  ? '#000080'
-                                  : color.toLowerCase(),
-                      }}
-                    />
-                    {color}
-                  </button>
-                ))}
+                {product.colors.map((color) => {
+                  let isAvailable = true;
+                  let stockForColor = 0;
+
+                  if (selectedSize) {
+                    const sizeObj = product.sizes.find(s => s.size === selectedSize);
+                    const colorObj = sizeObj?.colors.find(c => c.color === color);
+                    stockForColor = colorObj?.stock || 0;
+                    isAvailable = stockForColor > 0;
+                  } else {
+                    // Check if color exists in any size with stock > 0
+                    isAvailable = product.sizes.some(s => s.colors.some(c => c.color === color && c.stock > 0));
+                  }
+
+                  return (
+                    <button
+                      key={color}
+                      onClick={() => isAvailable && setSelectedColor(color)}
+                      disabled={!isAvailable}
+                      className={cn(
+                        'flex h-10 items-center gap-2 rounded-lg border px-4 text-sm transition-all',
+                        selectedColor === color
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border hover:border-foreground',
+                        !isAvailable && 'opacity-50 cursor-not-allowed bg-muted'
+                      )}
+                    >
+                      <span
+                        className="h-4 w-4 rounded-full border border-border"
+                        style={{
+                          backgroundColor:
+                            color.toLowerCase() === 'white'
+                              ? '#ffffff'
+                              : color.toLowerCase() === 'black'
+                                ? '#1a1a1a'
+                                : color.toLowerCase() === 'beige'
+                                  ? '#f5f5dc'
+                                  : color.toLowerCase() === 'navy'
+                                    ? '#000080'
+                                    : color.toLowerCase(),
+                        }}
+                      />
+                      {color}
+                      {/* Show stock if both size and color are selected or if only color logic needed */}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -273,20 +312,33 @@ const ProductDetail: React.FC = () => {
                 <button className="text-sm text-primary hover:underline">Size Guide</button>
               </div>
               <div className="flex flex-wrap gap-3">
-                {product.sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={cn(
-                      'flex h-12 min-w-12 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-all',
-                      selectedSize === size
-                        ? 'border-foreground bg-foreground text-background'
-                        : 'border-border hover:border-foreground'
-                    )}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {product.sizes.map((sizeObj) => {
+                  const totalStock = sizeObj.colors.reduce((acc, c) => acc + c.stock, 0);
+
+                  // If a color is selected, check if this size has stock for that color
+                  let isAvailable = totalStock > 0;
+                  if (selectedColor) {
+                    const colorObj = sizeObj.colors.find(c => c.color === selectedColor);
+                    isAvailable = (colorObj?.stock || 0) > 0;
+                  }
+
+                  return (
+                    <button
+                      key={sizeObj.size}
+                      onClick={() => isAvailable && setSelectedSize(sizeObj.size)}
+                      disabled={!isAvailable}
+                      className={cn(
+                        'flex h-12 min-w-12 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-all',
+                        selectedSize === sizeObj.size
+                          ? 'border-foreground bg-foreground text-background'
+                          : 'border-border hover:border-foreground',
+                        !isAvailable && 'opacity-50 cursor-not-allowed bg-muted'
+                      )}
+                    >
+                      {sizeObj.size}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -303,14 +355,29 @@ const ProductDetail: React.FC = () => {
                   </button>
                   <span className="w-12 text-center font-medium">{quantity}</span>
                   <button
-                    onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
+                    onClick={() => {
+                      let maxStock = product.stock;
+                      if (selectedSize && selectedColor) {
+                        const sizeObj = product.sizes.find(s => s.size === selectedSize);
+                        const colorObj = sizeObj?.colors.find(c => c.color === selectedColor);
+                        maxStock = colorObj?.stock || 0;
+                      } else if (selectedSize) {
+                        const sizeObj = product.sizes.find(s => s.size === selectedSize);
+                        maxStock = sizeObj?.colors.reduce((acc, c) => acc + c.stock, 0) || 0;
+                      }
+                      setQuantity((q) => Math.min(maxStock, q + 1));
+                    }}
                     className="flex h-12 w-12 items-center justify-center transition-colors hover:bg-muted"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {product.stock} items available
+                  {selectedSize && selectedColor
+                    ? `${product.sizes.find(s => s.size === selectedSize)?.colors.find(c => c.color === selectedColor)?.stock || 0} items available`
+                    : selectedSize
+                      ? `${product.sizes.find(s => s.size === selectedSize)?.colors.reduce((acc, c) => acc + c.stock, 0) || 0} items total in this size`
+                      : `${product.stock} items total`}
                 </p>
               </div>
             </div>

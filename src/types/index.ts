@@ -24,7 +24,14 @@ export interface Product {
   originalPrice?: number;
   description: string;
   category: string;
-  sizes: string[];
+  subCategory: string;
+  sizeType: 'Alpha' | 'Numeric' | 'Kids' | 'Saree';
+  fit?: string;
+  pattern?: string;
+  borderType?: string;
+  occasion?: string;
+  fabric?: string;
+  sizes: { size: string; colors: { color: string; stock: number; inStock: boolean }[] }[];
   colors: string[];
   stock: number;
   images: string[];
@@ -76,9 +83,17 @@ export interface Category {
 
 export interface FilterState {
   category: string;
+  subCategory?: string;
   priceRange: [number, number];
   sizes: string[];
   colors: string[];
+  attributes?: {
+    fit?: string[];
+    pattern?: string[];
+    borderType?: string[];
+    occasion?: string[];
+    fabric?: string[];
+  };
   sortBy: 'newest' | 'price-low' | 'price-high' | 'popular';
 }
 

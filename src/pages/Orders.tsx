@@ -8,6 +8,13 @@ import { mockOrders } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -27,9 +34,9 @@ const paymentColors = {
 const Orders: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
 
-  // Filter orders for current user (in production, this would be fetched from API)
   const [userOrders, setUserOrders] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [selectedOrder, setSelectedOrder] = React.useState<any>(null);
 
   React.useEffect(() => {
     const fetchOrders = async () => {
@@ -96,7 +103,7 @@ const Orders: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Order ID</p>
-                      <p className="font-medium">{order._id}</p>
+                      <p className="font-medium">{order._id.slice(-6).toUpperCase()}</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Date</p>
@@ -168,7 +175,12 @@ const Orders: React.FC = () => {
 
                   {/* Actions */}
                   <div className="mt-4 flex justify-end">
-                    <Button variant="outline" size="sm" className="group">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="group"
+                      onClick={() => setSelectedOrder(order)}
+                    >
                       View Details
                       <ChevronRight className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" />
                     </Button>
@@ -179,6 +191,116 @@ const Orders: React.FC = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Order #{selectedOrder?._id.slice(-6).toUpperCase()}</DialogTitle>
+            <DialogDescription>
+              Order Details
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedOrder && (
+            <div className="space-y-6">
+              {/* Status Bar */}
+              <div className="flex flex-wrap gap-4 rounded-lg bg-muted p-4">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-muted-foreground">Order Date</p>
+                  <p>
+                    {new Date(selectedOrder.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <Badge className={cn('capitalize', statusColors[selectedOrder.status as keyof typeof statusColors])}>
+                    {selectedOrder.status}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div>
+                <h3 className="mb-3 font-semibold">Items</h3>
+                <div className="space-y-3">
+                  {selectedOrder.items.map((item: any, index: number) => (
+                    <div key={index} className="flex gap-4 border-b border-border pb-3 last:border-0 last:pb-0">
+                      <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md bg-muted">
+                        <img
+                          src={item.product.images?.[0] || '/placeholder.jpg'}
+                          alt={item.product.name}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium">{item.product.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.size} • {item.color} • Qty: {item.quantity}
+                        </p>
+                      </div>
+                      <p className="font-medium">
+                        ₹{(item.price * item.quantity).toLocaleString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                {/* Shipping */}
+                <div>
+                  <h3 className="mb-2 font-semibold">Shipping Address</h3>
+                  <div className="rounded-lg border border-border p-3 text-sm">
+                    <p className="font-medium">
+                      {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}
+                    </p>
+                    <p>{selectedOrder.shippingAddress.street}</p>
+                    <p>
+                      {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state}
+                    </p>
+                    <p>
+                      {selectedOrder.shippingAddress.zipCode}
+                    </p>
+                    <p>{selectedOrder.shippingAddress.country}</p>
+                    <p className="mt-2 text-muted-foreground">{selectedOrder.shippingAddress.phone}</p>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div>
+                  <h3 className="mb-2 font-semibold">Payment Summary</h3>
+                  <div className="rounded-lg border border-border p-3">
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Payment Method</span>
+                        <span className="font-medium">{selectedOrder.paymentMethod}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Payment Status</span>
+                        <Badge variant="outline" className={cn('capitalize text-xs h-5', paymentColors[selectedOrder.paymentStatus as keyof typeof paymentColors])}>
+                          {selectedOrder.paymentStatus}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 border-t border-border pt-2">
+                        <div className="flex justify-between font-semibold text-base">
+                          <span>Total Amount</span>
+                          <span>₹{selectedOrder.totalAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
     </Layout>
   );
 };

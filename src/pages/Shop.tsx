@@ -37,6 +37,7 @@ const Shop: React.FC = () => {
 
   const [filters, setFilters] = useState<FilterState>({
     category: searchParams.get('category') || '',
+    subCategory: searchParams.get('sub') || '',
     priceRange: [0, 50000],
     sizes: [],
     colors: [],
@@ -55,7 +56,14 @@ const Shop: React.FC = () => {
   useEffect(() => {
     const category = searchParams.get('category') || '';
     const sortBy = (searchParams.get('sortBy') as FilterState['sortBy']) || 'newest';
-    setFilters((prev) => ({ ...prev, category, sortBy }));
+    // Reset attributes when category changes
+    setFilters((prev) => ({
+      ...prev,
+      category,
+      subCategory: searchParams.get('sub') || '', // Reset or sync subcategory
+      sortBy,
+      attributes: {} // Clear attributes on category switch to avoid invalid filters
+    }));
   }, [searchParams]);
 
   // Filter and sort products
@@ -78,6 +86,12 @@ const Shop: React.FC = () => {
       result = result.filter((p) => p.category.toLowerCase() === filters.category.toLowerCase());
     }
 
+    // Sub-category filter
+    const subCategory = searchParams.get('sub');
+    if (subCategory) {
+      result = result.filter((p) => p.subCategory?.toLowerCase() === subCategory.toLowerCase());
+    }
+
     // Price filter
     result = result.filter(
       (p) => p.price >= filters.priceRange[0] && p.price <= filters.priceRange[1]
@@ -86,7 +100,7 @@ const Shop: React.FC = () => {
     // Size filter
     if (filters.sizes.length > 0) {
       result = result.filter((p) =>
-        p.sizes && p.sizes.length > 0 && filters.sizes.some((size) => p.sizes.includes(size))
+        p.sizes && p.sizes.length > 0 && filters.sizes.some((size) => p.sizes.some(s => s.size === size))
       );
     }
 
@@ -95,6 +109,25 @@ const Shop: React.FC = () => {
       result = result.filter((p) =>
         p.colors && p.colors.length > 0 && filters.colors.some((color) => p.colors.includes(color))
       );
+    }
+
+    // Attribute filters
+    if (filters.attributes) {
+      if (filters.attributes.fit && filters.attributes.fit.length > 0) {
+        result = result.filter((p) => p.fit && filters.attributes!.fit!.includes(p.fit));
+      }
+      if (filters.attributes.pattern && filters.attributes.pattern.length > 0) {
+        result = result.filter((p) => p.pattern && filters.attributes!.pattern!.includes(p.pattern));
+      }
+      if (filters.attributes.borderType && filters.attributes.borderType.length > 0) {
+        result = result.filter((p) => p.borderType && filters.attributes!.borderType!.includes(p.borderType));
+      }
+      if (filters.attributes.occasion && filters.attributes.occasion.length > 0) {
+        result = result.filter((p) => p.occasion && filters.attributes!.occasion!.includes(p.occasion));
+      }
+      if (filters.attributes.fabric && filters.attributes.fabric.length > 0) {
+        result = result.filter((p) => p.fabric && filters.attributes!.fabric!.includes(p.fabric));
+      }
     }
 
     // Sort
@@ -126,6 +159,23 @@ const Shop: React.FC = () => {
     });
   };
 
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters);
+    setSearchParams((prev) => {
+      if (newFilters.category) {
+        prev.set('category', newFilters.category);
+      } else {
+        prev.delete('category');
+      }
+      if (newFilters.subCategory) {
+        prev.set('sub', newFilters.subCategory);
+      } else {
+        prev.delete('sub');
+      }
+      return prev;
+    });
+  };
+
   return (
     <Layout>
       {/* Header */}
@@ -146,20 +196,23 @@ const Shop: React.FC = () => {
       <div className="container py-8">
         <div className="flex gap-8">
           {/* Filters sidebar */}
-          <ProductFilters
-            filters={filters}
-            onFilterChange={setFilters}
-            maxPrice={maxPrice}
-          />
+          {/* Filters sidebar - Hidden on mobile to prevent duplicate trigger */}
+          <div className="hidden lg:block">
+            <ProductFilters
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              maxPrice={maxPrice}
+            />
+          </div>
 
           {/* Products grid */}
           <div className="flex-1">
             {/* Toolbar */}
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4 lg:hidden">
                 <ProductFilters
                   filters={filters}
-                  onFilterChange={setFilters}
+                  onFilterChange={handleFilterChange}
                   maxPrice={maxPrice}
                 />
               </div>

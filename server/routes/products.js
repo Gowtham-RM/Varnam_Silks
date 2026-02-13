@@ -26,7 +26,9 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get product recommendations (TF-IDF with breakdown)
+import { getRecommendations } from '../services/recommendationService.js';
+
+// Get product recommendations (Weighted Scoring)
 router.get('/:id/recommendations', async (req, res) => {
   try {
     const { id } = req.params;
@@ -36,50 +38,15 @@ router.get('/:id/recommendations', async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
+    // Fetch candidates (Optimization: Fetch only same category + slightly more, or all if small dataset)
+    // For 180 products, fetching all is fine.
     const allProducts = await Product.find({ _id: { $ne: id } });
-    const TfIdf = natural.TfIdf;
 
-    // Helper to calculate score for a specific field
-    const calculateFieldScore = (targetText, products, fieldGetter) => {
-      const tfidf = new TfIdf();
-      products.forEach(product => {
-        tfidf.addDocument(fieldGetter(product));
-      });
-      const scores = [];
-      tfidf.tfidfs(targetText, function (i, measure) {
-        scores.push(measure);
-      });
-      return scores;
-    };
+    const recommendations = await getRecommendations(targetProduct, allProducts);
 
-    const nameScores = calculateFieldScore(targetProduct.name, allProducts, p => p.name);
-    const categoryScores = calculateFieldScore(targetProduct.category, allProducts, p => p.category);
-    const descriptionScores = calculateFieldScore(targetProduct.description, allProducts, p => p.description);
-    const colorScores = calculateFieldScore(targetProduct.colors.join(' '), allProducts, p => p.colors.join(' '));
-
-    const results = allProducts.map((product, index) => {
-      const breakdown = {
-        name: nameScores[index] || 0,
-        category: categoryScores[index] || 0,
-        description: descriptionScores[index] || 0,
-        colors: colorScores[index] || 0
-      };
-
-      // Weighted sum (optional: can just sum them up)
-      const totalScore = breakdown.name + breakdown.category + breakdown.description + breakdown.colors;
-
-      return {
-        ...transformProduct(product),
-        score: totalScore,
-        breakdown
-      };
-    });
-
-    const topRecommendations = results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 4);
-
-    res.json(topRecommendations);
+    // Transform before sending
+    const transformed = recommendations.map(transformProduct);
+    res.json(transformed);
 
   } catch (error) {
     console.error('Recommendation error:', error);
@@ -94,23 +61,23 @@ router.get('/:id/also-bought', async (req, res) => {
     const { id } = req.params;
 
     // 1. Find completed orders containing this product
+    // Optimization: Look at last 50 orders instead of 10 for better data
     const orders = await Order.find({
       'items.product': id,
       status: { $ne: 'cancelled' }
     })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(50)
       .populate('items.product');
 
     if (orders.length === 0) {
       return res.json([]);
     }
 
-    // 2. Extract co-occurring products
+    // 2. Extract co-occurring products with simple frequency counting
     const productFrequency = {};
     orders.forEach(order => {
       order.items.forEach(item => {
-        // Validation check for populated product
         if (!item.product || !item.product._id) return;
 
         const productId = item.product._id.toString();
@@ -127,7 +94,7 @@ router.get('/:id/also-bought', async (req, res) => {
       });
     });
 
-    // 3. Sort by frequency
+    // 3. Sort by frequency and take top 4
     const frequentProducts = Object.values(productFrequency)
       .sort((a, b) => b.count - a.count)
       .slice(0, 4)
