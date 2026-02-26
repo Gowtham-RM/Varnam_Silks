@@ -3,6 +3,7 @@ import natural from 'natural';
 
 // Initialize tokenizer and string distance calculators for fuzzy matching
 const tokenizer = new natural.WordTokenizer();
+const stopwords = natural.stopwords;
 
 /**
  * Builds the MongoDB query object from request parameters
@@ -81,28 +82,51 @@ export const performSmartSearch = async (queryParams) => {
     // -------------------------------------------------------------
     const searchTerm = q.trim();
 
-    // 1. First, try an Aggregation Pipeline that scores and sorts
-    // We break the search term into tokens to build a flexible regex for partial matching
-    const tokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [searchTerm.toLowerCase()];
-    // e.g. "red saree" -> ["red", "saree"] -> (?=.*red)(?=.*saree)
+    // e.g., for "shirt men", we want documents that match BOTH "shirt" and "men"
+    // anywhere across the designated fields.
+    let tokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [searchTerm.toLowerCase()];
+
+    // Filter out common english stop-words ("for", "with", "the", etc.)
+    const filteredTokens = tokens.filter(t => !stopwords.includes(t));
+
+    // If filtering removed everything (e.g., they literally searched "for"), just use original
+    if (filteredTokens.length > 0) {
+        tokens = filteredTokens;
+    }
+
+    // Combine tokens into a regex that requires ALL tokens to appear somewhere in the string
+    // e.g., ["shirt", "men"] -> "(?=.*shirt)(?=.*men)"
     const regexPattern = tokens.map(t => `(?=.*${t})`).join('');
-
-    const textQuery = {
-        $or: [
-            { name: { $regex: regexPattern, $options: 'i' } },
-            { category: { $regex: regexPattern, $options: 'i' } },
-            { subCategory: { $regex: regexPattern, $options: 'i' } },
-            { description: { $regex: regexPattern, $options: 'i' } }
-        ]
-    };
-
-    // Combine text query with filters
-    const combinedQuery = { ...filterQuery, ...textQuery };
 
     // Execute aggregation
     const pipeline = [
-        { $match: combinedQuery },
-        // Add a field to score the matches. 
+        // 1. First layer: Filter by standard categories/prices if provided
+        { $match: filterQuery },
+
+        // 2. Create a giant string of all text fields to search against
+        {
+            $addFields: {
+                searchString: {
+                    $concat: [
+                        { $ifNull: ["$name", ""] }, " ",
+                        { $ifNull: ["$category", ""] }, " ",
+                        { $ifNull: ["$subCategory", ""] }, " ",
+                        { $ifNull: ["$description", ""] }, " ",
+                        { $ifNull: ["$fabric", ""] }, " ",
+                        { $ifNull: ["$color", ""] }
+                    ]
+                }
+            }
+        },
+
+        // 3. Match the regex against the concatenated string
+        {
+            $match: {
+                searchString: { $regex: new RegExp(regexPattern, 'i') }
+            }
+        },
+
+        // 4. Score the matches
         {
             $addFields: {
                 exactMatchScore: {
