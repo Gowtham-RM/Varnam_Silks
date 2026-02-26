@@ -81,11 +81,18 @@ const AdminProductForm: React.FC = () => {
           const rawCategory = data.category || '';
           const categorySlug = rawCategory.trim().toLowerCase();
 
-          // Find subcategory match
+          // Find subcategory match (handles both label text or slug/url formats from previous saves)
           const categoryItem = NAV_ITEMS.find(item => item.label.toLowerCase() === categorySlug);
+          const subCategoryOptions = categoryItem?.columns?.flatMap(col => col.items) || [];
 
-          const subCategoryOptions = categoryItem?.columns?.flatMap(col => col.items.map(i => i.label)) || [];
-          const matchedSubCategory = findMatch(data.subCategory, subCategoryOptions);
+          let matchedSubCategory = data.subCategory;
+          const foundSub = subCategoryOptions.find(i =>
+            i.label.toLowerCase() === data.subCategory?.toLowerCase() ||
+            i.href.includes(`sub=${data.subCategory?.toLowerCase()}`)
+          );
+          if (foundSub) {
+            matchedSubCategory = foundSub.label;
+          }
 
           // Get attribute options based on category/subcategory
           const attrOptions = getProductAttributes(categorySlug, matchedSubCategory);
@@ -135,6 +142,16 @@ const AdminProductForm: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleCategoryChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      category: value,
+      // Only reset subCategory if we change from one valid category to another (user action)
+      // Do not reset when transitioning from '' to 'men' (hydration load)
+      subCategory: prev.category && prev.category !== value ? '' : prev.subCategory
+    }));
   };
 
   const handleSizeToggle = (size: string) => {
@@ -243,6 +260,25 @@ const AdminProductForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Manual validation for required fields
+    if (!formData.name.trim()) {
+      toast.error('Product Name is required');
+      return;
+    }
+    if (!formData.price) {
+      toast.error('Price is required');
+      return;
+    }
+    if (!formData.category) {
+      toast.error('Category is required');
+      return;
+    }
+    if (!formData.subCategory) {
+      toast.error('Sub Category is required');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -357,9 +393,8 @@ const AdminProductForm: React.FC = () => {
                 <Label htmlFor="category">Category</Label>
                 <Select
                   value={formData.category}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, category: value }))
-                  }
+                  onValueChange={handleCategoryChange}
+                  required
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Select category" />
@@ -377,11 +412,13 @@ const AdminProductForm: React.FC = () => {
               <div>
                 <Label htmlFor="subCategory">Sub Category</Label>
                 <Select
+                  key={`subcat-${formData.category}-${subCategoryOptions.length}`}
                   value={findMatch(formData.subCategory, subCategoryOptions)}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, subCategory: value }))
                   }
                   disabled={!formData.category}
+                  required
                 >
                   <SelectTrigger className="mt-1.5">
                     <SelectValue placeholder="Select sub category" />
