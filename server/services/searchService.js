@@ -4,6 +4,23 @@ import natural from 'natural';
 // Initialize tokenizer and string distance calculators for fuzzy matching
 const tokenizer = new natural.WordTokenizer();
 const stopwords = natural.stopwords;
+const stemmer = natural.PorterStemmer;
+
+// Dictionary map to capture synonymous variations
+const SYNONYMS = {
+    'tshirt': ['t-shirt', 'tee', 't shirt'],
+    't-shirt': ['tshirt', 'tee', 't shirt'],
+    'tee': ['tshirt', 't-shirt', 't shirt'],
+    'kurta': ['kurti', 'kurtas', 'kurtis'],
+    'kurti': ['kurta', 'kurtas', 'kurtis'],
+    'pant': ['pants', 'trouser', 'trousers', 'bottoms'],
+    'trouser': ['pant', 'pants', 'trousers', 'bottoms'],
+    'sari': ['saree', 'sarees'],
+    'saree': ['sari', 'sarees'],
+    'men': ['mens', 'male', 'boy', 'boys'],
+    'women': ['womens', 'female', 'girl', 'girls', 'ladies'],
+    'kids': ['kid', 'child', 'children', 'boys', 'girls']
+};
 
 /**
  * Builds the MongoDB query object from request parameters
@@ -84,19 +101,35 @@ export const performSmartSearch = async (queryParams) => {
 
     // e.g., for "shirt men", we want documents that match BOTH "shirt" and "men"
     // anywhere across the designated fields.
-    let tokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [searchTerm.toLowerCase()];
+    let baseTokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [searchTerm.toLowerCase()];
 
     // Filter out common english stop-words ("for", "with", "the", etc.)
-    const filteredTokens = tokens.filter(t => !stopwords.includes(t));
+    const filteredTokens = baseTokens.filter(t => !stopwords.includes(t));
 
     // If filtering removed everything (e.g., they literally searched "for"), just use original
     if (filteredTokens.length > 0) {
-        tokens = filteredTokens;
+        baseTokens = filteredTokens;
     }
 
-    // Combine tokens into a regex that requires ALL tokens to appear somewhere in the string
-    // e.g., ["shirt", "men"] -> "(?=.*shirt)(?=.*men)"
-    const regexPattern = tokens.map(t => `(?=.*${t})`).join('');
+    // Enhance tokens with Synonyms and Stems
+    let expandedTokenGroups = baseTokens.map(token => {
+        const group = new Set([token]);
+
+        // Add stem (e.g., "shirts" -> "shirt")
+        group.add(stemmer.stem(token));
+
+        // Add synonyms if they exist
+        if (SYNONYMS[token]) {
+            SYNONYMS[token].forEach(syn => group.add(syn));
+        }
+
+        // Return as An OR Block Regex String: "(token1|stem1|synonym1)"
+        return `(${Array.from(group).join('|')})`;
+    });
+
+    // Combine tokens into a regex that requires ALL token groups to appear somewhere in the string
+    // e.g., ["(shirt|shirts)", "(men|mens|male)"] -> "(?=.*(shirt|shirts))(?=.*(men|mens|male))"
+    const strictRegexPattern = expandedTokenGroups.map(groupMatch => `(?=.*${groupMatch})`).join('');
 
     // Execute aggregation
     const pipeline = [
@@ -119,10 +152,10 @@ export const performSmartSearch = async (queryParams) => {
             }
         },
 
-        // 3. Match the regex against the concatenated string
+        // 3. Match the strict regex against the concatenated string
         {
             $match: {
-                searchString: { $regex: new RegExp(regexPattern, 'i') }
+                searchString: { $regex: new RegExp(strictRegexPattern, 'i') }
             }
         },
 
@@ -157,11 +190,11 @@ export const performSmartSearch = async (queryParams) => {
         { $sort: { rankingScore: -1 } }
     ];
 
-    // Get Total Count
+    // Get Total Count for STRICT matches
     const countResult = await Product.aggregate([...pipeline, { $count: 'total' }]);
     total = countResult.length > 0 ? countResult[0].total : 0;
 
-    // If we have results, fetch them paginated
+    // If we have STRICT results, fetch them paginated
     if (total > 0) {
         products = await Product.aggregate([
             ...pipeline,
@@ -181,7 +214,76 @@ export const performSmartSearch = async (queryParams) => {
     }
 
     // -------------------------------------------------------------
-    // SCENARIO 3: No results found. Attempt Typo Correction (Fuzzy)
+    // SCENARIO 3: Strict Match Failed. Dynamic Query Relaxing (Amazon Fallback)
+    // -------------------------------------------------------------
+    // If the user typed "blue cotton men casual printed shirt" and we don't have that exact item,
+    // we drop the requirement that ALL tokens must match, and instead search for ANY token.
+    // We then rank the products by Keyword Density (how many of the tokens they matched).
+
+    // Regex requiring ANY of the tokens to match somewhere
+    // e.g., ["(shirt|shirts)", "(men|mens)"] -> "((shirt|shirts)|(men|mens))"
+    const relaxedRegexPattern = expandedTokenGroups.join('|');
+
+    const relaxedPipeline = [
+        ...pipeline.slice(0, 2), // Keep match and searchString generation
+        // 3. Match the relaxed regex against the concatenated string
+        {
+            $match: {
+                searchString: { $regex: new RegExp(relaxedRegexPattern, 'i') }
+            }
+        },
+        // 4. Calculate Density Score (how many of the user's base tokens were found)
+        {
+            $addFields: {
+                keywordDensity: {
+                    $add: expandedTokenGroups.map(groupRegex => ({
+                        $cond: [
+                            { $regexMatch: { input: "$searchString", regex: new RegExp(groupRegex, 'i') } },
+                            100, // +100 points for every keyword fulfilled
+                            0
+                        ]
+                    }))
+                }
+            }
+        },
+        // 5. Final Ranking for Relaxed searches
+        {
+            $addFields: {
+                rankingScore: {
+                    $add: [
+                        "$keywordDensity",
+                        { $multiply: ["$purchaseCount", 0.1] },
+                        { $multiply: ["$viewCount", 0.01] }
+                    ]
+                }
+            }
+        },
+        { $sort: { rankingScore: -1 } }
+    ];
+
+    // Get Total Count for Relaxed matches
+    const relaxedCountResult = await Product.aggregate([...relaxedPipeline, { $count: 'total' }]);
+    total = relaxedCountResult.length > 0 ? relaxedCountResult[0].total : 0;
+
+    if (total > 0) {
+        products = await Product.aggregate([
+            ...relaxedPipeline,
+            { $skip: skip },
+            { $limit: limitNum }
+        ]);
+
+        products = products.map(p => {
+            p.id = p._id.toString();
+            p._id = undefined;
+            p.colorImages = p.colorImages || [];
+            return p;
+        });
+
+        return { products, total, page: pageNum, limit: limitNum, suggestion: null };
+    }
+
+    // -------------------------------------------------------------
+    // SCENARIO 4: No results found at all. Attempt Typo Correction
     // -------------------------------------------------------------
 
     // Fetch all meaningful terms from DB to check against (Cached or quick fetch)
