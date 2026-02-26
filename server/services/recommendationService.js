@@ -13,18 +13,23 @@ const calculateSimilarity = (target, candidate) => {
     let score = 0;
 
     // 1. Category Hierarchy (High Weight)
-    if (target.category === candidate.category) {
-        score += 5;
-        if (target.subCategory === candidate.subCategory) {
-            score += 15; // Boost significantly for same specific type
+    const tCat = (target.category || '').toLowerCase();
+    const cCat = (candidate.category || '').toLowerCase();
+    const tSub = (target.subCategory || '').toLowerCase();
+    const cSub = (candidate.subCategory || '').toLowerCase();
+
+    if (tCat && cCat && tCat === cCat) {
+        score += 20; // Massive boost to never recommend out-of-category
+        if (tSub && cSub && tSub === cSub) {
+            score += 30; // Boost significantly for same specific type
         }
     }
 
     // 2. Attributes (Medium Weight)
-    if (target.fabric && candidate.fabric && target.fabric === candidate.fabric) score += 3;
-    if (target.pattern && candidate.pattern && target.pattern === candidate.pattern) score += 3;
-    if (target.occasion && candidate.occasion && target.occasion === candidate.occasion) score += 3;
-    if (target.fit && candidate.fit && target.fit === candidate.fit) score += 2;
+    if (target.fabric && candidate.fabric && target.fabric === candidate.fabric) score += 5;
+    if (target.pattern && candidate.pattern && target.pattern === candidate.pattern) score += 5;
+    if (target.occasion && candidate.occasion && target.occasion === candidate.occasion) score += 4;
+    if (target.fit && candidate.fit && target.fit === candidate.fit) score += 4;
 
     // 3. Color Similarity (Intersection)
     const targetColors = new Set(target.colors || []);
@@ -45,18 +50,28 @@ const calculateSimilarity = (target, candidate) => {
         score += jaccardIndex * 5; // Weighted
     }
 
-    // 5. Price Proximity (Optional: Penalize large differences)
-    // logic: if price is within 30% range, give small boost
-    const priceDiffRatio = Math.abs(target.price - candidate.price) / target.price;
-    if (priceDiffRatio < 0.3) score += 2;
+    // 5. Price Proximity (Sliding scale)
+    // The closer the price, the higher the score (up to +5)
+    if (target.price && candidate.price) {
+        const priceDiffRatio = Math.abs(target.price - candidate.price) / target.price;
+        if (priceDiffRatio < 0.1) score += 5;
+        else if (priceDiffRatio < 0.2) score += 3;
+        else if (priceDiffRatio < 0.3) score += 1;
+    }
 
     return score;
 };
 
-export const getRecommendations = async (targetProduct, allProducts, limit = 4) => {
+export const getRecommendations = async (targetProduct, allProducts, limit = 8) => {
+    const tCat = (targetProduct.category || '').toLowerCase();
+
     const scoredProducts = allProducts.map(product => {
         // Skip self is handled by caller usually, but safe to check id
         if (product._id.toString() === targetProduct._id.toString()) return null;
+
+        // Hard filter: Never recommend items from a different base category
+        const cCat = (product.category || '').toLowerCase();
+        if (tCat !== cCat) return null;
 
         return {
             product,

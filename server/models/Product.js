@@ -109,9 +109,25 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 0,
     min: 0
+  },
+  purchaseCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  viewCount: {
+    type: Number,
+    default: 0,
+    min: 0
   }
 }, {
   timestamps: true
 });
+
+// Enable advanced text search
+productSchema.index(
+  { name: 'text', description: 'text', category: 'text', subCategory: 'text' },
+  { weights: { name: 10, category: 5, subCategory: 5, description: 1 } }
+);
 
 export default mongoose.model('Product', productSchema);

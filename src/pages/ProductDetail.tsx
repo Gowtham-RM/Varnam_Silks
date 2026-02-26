@@ -439,9 +439,11 @@ const ProductDetail: React.FC = () => {
         {relatedProducts.length > 0 && (
           <div className="mt-20">
             <h2 className="font-display text-2xl font-semibold">You May Also Like</h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 flex gap-6 overflow-x-auto pb-4 snap-x scrollbar-hide">
               {relatedProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div key={product.id} className="min-w-[280px] max-w-[280px] snap-start">
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           </div>
@@ -452,9 +454,11 @@ const ProductDetail: React.FC = () => {
         {alsoBought.length > 0 && (
           <div className="mt-20">
             <h2 className="font-display text-2xl font-semibold">Users Also Bought</h2>
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-8 flex gap-6 overflow-x-auto pb-4 snap-x scrollbar-hide">
               {alsoBought.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div key={product.id} className="min-w-[280px] max-w-[280px] snap-start">
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           </div>
