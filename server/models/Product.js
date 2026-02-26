@@ -64,6 +64,16 @@ const productSchema = new mongoose.Schema({
   colors: [{
     type: String
   }],
+  colorImages: [{
+    color: {
+      type: String,
+      required: true
+    },
+    image: {
+      type: String,
+      required: true
+    }
+  }],
   fit: {
     type: String
   },

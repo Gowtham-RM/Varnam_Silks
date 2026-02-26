@@ -11,7 +11,8 @@ const transformProduct = (product) => {
   return {
     ...obj,
     id: obj._id.toString(),
-    _id: undefined
+    _id: undefined,
+    colorImages: obj.colorImages || []
   };
 };
 

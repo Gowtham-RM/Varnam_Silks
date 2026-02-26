@@ -28,6 +28,7 @@ const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const TestRecommendations = lazy(() => import("./pages/TestRecommendations"));
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -65,6 +66,7 @@ const App = () => (
                     <Route path="/admin/products/new" element={<AdminProductForm />} />
                     <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
                     <Route path="/admin/orders" element={<AdminOrders />} />
+                    <Route path="/admin/analytics" element={<AdminAnalytics />} />
                   </Route>
 
                   {/* 404 */}

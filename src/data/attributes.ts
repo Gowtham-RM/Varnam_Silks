@@ -26,7 +26,7 @@ export const FABRIC_OPTIONS = {
     MEN: ['Cotton', 'Linen', 'Denim', 'Polyester'],
     WOMEN_TOP: ['Cotton', 'Rayon', 'Georgette'],
     SAREES: ['Silk', 'Cotton', 'Chiffon'],
-    KIDS: ['Soft Cotton', 'Hosiery'],
+    KIDS: ['Soft Cotton', 'Hosiery', 'Cotton'],
     ALL: ['Cotton', 'Linen', 'Denim', 'Polyester', 'Rayon', 'Georgette', 'Silk', 'Chiffon', 'Soft Cotton', 'Hosiery']
 };
 

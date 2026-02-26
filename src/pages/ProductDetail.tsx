@@ -228,12 +228,16 @@ const ProductDetail: React.FC = () => {
 
             {/* Product Specifications */}
             <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-              <div>
-                <span className="font-medium text-foreground">Fabric:</span> <span className="text-muted-foreground">{product.fabric || 'N/A'}</span>
-              </div>
-              <div>
-                <span className="font-medium text-foreground">Pattern:</span> <span className="text-muted-foreground">{product.pattern || 'N/A'}</span>
-              </div>
+              {product.fabric && (
+                <div>
+                  <span className="font-medium text-foreground">Fabric:</span> <span className="text-muted-foreground">{product.fabric}</span>
+                </div>
+              )}
+              {product.pattern && (
+                <div>
+                  <span className="font-medium text-foreground">Pattern:</span> <span className="text-muted-foreground">{product.pattern}</span>
+                </div>
+              )}
               <div>
                 <span className="font-medium text-foreground">Fit:</span> <span className="text-muted-foreground">{product.fit || 'Regular'}</span>
               </div>

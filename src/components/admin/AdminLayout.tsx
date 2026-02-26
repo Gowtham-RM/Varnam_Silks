@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Store, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Store, Menu, X, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
+  { href: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
@@ -50,8 +51,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         )}
       >
         <div className="flex h-16 items-center justify-between border-b border-border px-6">
-          <Link to="/admin" className="font-display text-xl font-semibold whitespace-nowrap">
-            VARNAM SILKS
+          <Link to="/admin" className="font-display text-xl font-bold tracking-wider text-rose-950 whitespace-nowrap">
+            VARNAM SILKS<span className="text-rose-600">.</span>
           </Link>
           <Button
             variant="ghost"
@@ -63,29 +64,32 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           </Button>
         </div>
 
-        <nav className="flex flex-col gap-1 p-4">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={() => setIsSidebarOpen(false)}
-              className={cn(
-                'flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors',
-                location.pathname === item.href
-                  ? 'bg-rose-600 text-white shadow-md'
-                  : 'text-muted-foreground hover:bg-rose-50 hover:text-rose-600'
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.label}
-            </Link>
-          ))}
+        <nav className="flex flex-col gap-2 p-4">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                to={item.href}
+                onClick={() => setIsSidebarOpen(false)}
+                className={cn(
+                  'group flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200',
+                  isActive
+                    ? 'bg-rose-600 text-white shadow-md shadow-rose-200'
+                    : 'text-muted-foreground hover:bg-rose-50 hover:text-rose-600'
+                )}
+              >
+                <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-white" : "text-muted-foreground group-hover:text-rose-600")} />
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4 bg-background">
           <Link
             to="/"
-            className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mb-1"
           >
             <Store className="h-5 w-5" />
             View Store

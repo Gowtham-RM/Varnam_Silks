@@ -48,12 +48,12 @@ const Cart: React.FC = () => {
                 <div key={item.id} className="flex gap-4 p-4 md:p-6">
                   {/* Image */}
                   <Link
-                    to={`/product/${item.productId}`}
+                    to={item.product ? `/product/${item.productId}` : '#'}
                     className="aspect-[3/4] w-24 shrink-0 overflow-hidden rounded-lg bg-muted md:w-32"
                   >
                     <img
-                      src={item.product.images[0]}
-                      alt={item.product.name}
+                      src={item.product?.images?.[0] || 'https://placehold.co/400x600?text=No+Image'}
+                      alt={item.product?.name || 'Product'}
                       referrerPolicy="no-referrer"
                       className="h-full w-full object-cover"
                     />
@@ -64,17 +64,17 @@ const Cart: React.FC = () => {
                     <div className="flex justify-between gap-4">
                       <div>
                         <Link
-                          to={`/product/${item.productId}`}
+                          to={item.product ? `/product/${item.productId}` : '#'}
                           className="font-display font-medium hover:text-primary"
                         >
-                          {item.product.name}
+                          {item.product?.name || 'Unknown Product'}
                         </Link>
                         <p className="mt-1 text-sm text-muted-foreground">
                           Size: {item.size} • Color: {item.color}
                         </p>
                       </div>
                       <p className="font-semibold">
-                        ₹{(item.product.price * item.quantity).toLocaleString()}
+                        ₹{((item.product?.price || 0) * item.quantity).toLocaleString()}
                       </p>
                     </div>
 

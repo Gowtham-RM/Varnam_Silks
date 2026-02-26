@@ -20,7 +20,8 @@ export const WishlistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         const savedWishlist = localStorage.getItem('wishlist');
         if (savedWishlist) {
             try {
-                setWishlist(JSON.parse(savedWishlist));
+                const parsed = JSON.parse(savedWishlist);
+                setWishlist(Array.isArray(parsed) ? parsed : []);
             } catch (e) {
                 console.error('Failed to parse wishlist', e);
             }

@@ -115,36 +115,36 @@ export const NAV_ITEMS: MegaMenuItem[] = [
             {
                 title: 'Boys',
                 items: [
-                    { label: 'T-Shirts', href: '/shop?category=kids&sub=boys-t-shirts' },
-                    { label: 'Ethnic Wear', href: '/shop?category=kids&sub=boys-ethnic' },
-                    { label: 'Shorts', href: '/shop?category=kids&sub=boys-shorts' },
-                    { label: 'Shirts', href: '/shop?category=kids&sub=boys-shirts' },
-                    { label: 'Innerwear', href: '/shop?category=kids&sub=boys-innerwear' },
+                    { label: 'Boys T-Shirts', href: '/shop?category=kids&sub=boys-t-shirts' },
+                    { label: 'Boys Ethnic', href: '/shop?category=kids&sub=boys-ethnic' },
+                    { label: 'Boys Shorts', href: '/shop?category=kids&sub=boys-shorts' },
+                    { label: 'Boys Shirts', href: '/shop?category=kids&sub=boys-shirts' },
+                    { label: 'Boys Innerwear', href: '/shop?category=kids&sub=boys-innerwear' },
                 ],
             },
             {
                 title: 'Girls',
                 items: [
-                    { label: 'Dresses & Skirts', href: '/shop?category=kids&sub=girls-dresses-skirts' },
-                    { label: 'Ethnic Wear', href: '/shop?category=kids&sub=girls-ethnic' },
-                    { label: 'T-shirts & Tops', href: '/shop?category=kids&sub=girls-t-shirts-tops' },
-                    { label: 'Innerwear', href: '/shop?category=kids&sub=girls-innerwear' },
+                    { label: 'Girls Dresses & Skirts', href: '/shop?category=kids&sub=girls-dresses-skirts' },
+                    { label: 'Girls Ethnic', href: '/shop?category=kids&sub=girls-ethnic' },
+                    { label: 'Girls T-shirts & Tops', href: '/shop?category=kids&sub=girls-t-shirts-tops' },
+                    { label: 'Girls Innerwear', href: '/shop?category=kids&sub=girls-innerwear' },
                 ],
             },
             {
                 title: 'Baby Boys',
                 items: [
                     { label: 'Combos Sets', href: '/shop?category=kids&sub=baby-boys-combos' },
-                    { label: 'T-Shirts', href: '/shop?category=kids&sub=baby-boys-t-shirts' },
-                    { label: 'Innerwear', href: '/shop?category=kids&sub=baby-boys-innerwear' },
+                    { label: 'Baby Boys T-Shirts', href: '/shop?category=kids&sub=baby-boys-t-shirts' },
+                    { label: 'Baby Boys Innerwear', href: '/shop?category=kids&sub=baby-boys-innerwear' },
                 ],
             },
             {
                 title: 'Baby Girls',
                 items: [
                     { label: 'Combos Sets', href: '/shop?category=kids&sub=baby-girls-combos' },
-                    { label: 'Dresses & Gowns', href: '/shop?category=kids&sub=baby-girls-dresses-gowns' },
-                    { label: 'Innerwear', href: '/shop?category=kids&sub=baby-girls-innerwear' },
+                    { label: 'Baby Girls Dresses & Gowns', href: '/shop?category=kids&sub=baby-girls-dresses-gowns' },
+                    { label: 'Baby Girls Innerwear', href: '/shop?category=kids&sub=baby-girls-innerwear' },
                 ]
             }
         ],

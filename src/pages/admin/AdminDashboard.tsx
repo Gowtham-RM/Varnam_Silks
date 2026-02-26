@@ -1,20 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, ShoppingBag, DollarSign, AlertTriangle, Package, TrendingUp, Loader2 } from 'lucide-react';
+import { Users, ShoppingBag, DollarSign, AlertTriangle, Package, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import api from '@/lib/api';
 import { Product, Order } from '@/types';
 import { toast } from 'sonner';
+
+
+import { getSimulatedData } from '@/utils/simulatedData';
+import { fetchRealAdminStats } from '@/services/adminService';
+import { mockUsers } from '@/data/mockData';
+
+interface LowStockVariant {
+  id: string; // Product ID
+  name: string;
+  image: string;
+  category: string;
+  size: string;
+  color: string;
+  stock: number;
+  variantId: string;
+}
 
 interface AdminStats {
   totalUsers: number;
   totalOrders: number;
   totalRevenue: number;
   recentOrders: Order[];
-  lowStockProducts: Product[];
+  lowStockProducts: LowStockVariant[];
 }
 
 const AdminDashboard: React.FC = () => {
@@ -22,19 +40,57 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const loadDashboardData = async () => {
       try {
-        const { data } = await api.get('/admin/stats');
-        setStats(data);
+        // 1. Get Simulated Data (for Revenue & Charts consistency)
+        const simData = getSimulatedData();
+
+        // 2. Try to fetch Real Data
+        let realStats = {
+          totalUsers: 0,
+          lowStockProducts: [] as LowStockVariant[],
+          totalOrders: 0,
+          totalRevenue: 0,
+          recentOrders: [] as Order[]
+        };
+        let useRealData = false;
+
+        try {
+          const backendStats = await fetchRealAdminStats();
+          realStats = {
+            totalUsers: backendStats.totalUsers,
+            lowStockProducts: backendStats.lowStockProducts,
+            totalOrders: backendStats.totalOrders,
+            totalRevenue: backendStats.totalRevenue,
+            recentOrders: backendStats.recentOrders
+          };
+          useRealData = true;
+        } catch (err) {
+          console.warn("Backend API not available, falling back to mock data for Users/Stock", err);
+        }
+
+        // 3. Merge Data
+        setStats({
+          // Use Real Data if available, otherwise Simulated
+          totalUsers: useRealData ? realStats.totalUsers : mockUsers.length,
+          lowStockProducts: useRealData ? realStats.lowStockProducts : [], // No mock fallback for granular variants yet
+
+          // Use Real Data for Totals if available
+          totalOrders: useRealData && realStats.totalOrders ? realStats.totalOrders : simData.totalOrders,
+          totalRevenue: useRealData && realStats.totalRevenue ? realStats.totalRevenue : simData.totalRevenue,
+
+          recentOrders: useRealData && realStats.recentOrders && realStats.recentOrders.length > 0 ? realStats.recentOrders : simData.recentOrders,
+        });
+
       } catch (error) {
-        console.error('Failed to fetch admin stats:', error);
-        toast.error('Failed to load dashboard data');
+        console.error("Dashboard Error:", error);
+        toast.error("Failed to load dashboard");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchStats();
+    loadDashboardData();
   }, []);
 
   if (loading) {
@@ -54,53 +110,72 @@ const AdminDashboard: React.FC = () => {
       title: 'Total Users',
       value: stats.totalUsers,
       icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
+      trend: "+12% from last month",
+      trendUp: true,
+      color: "text-blue-600",
+      gradient: "from-blue-50 to-white"
     },
     {
       title: 'Total Orders',
       value: stats.totalOrders,
       icon: ShoppingBag,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      trend: "+5% from last month",
+      trendUp: true,
+      color: "text-green-600",
+      gradient: "from-green-50 to-white"
     },
     {
       title: 'Total Revenue',
       value: `₹${stats.totalRevenue.toLocaleString()}`,
       icon: DollarSign,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
+      trend: "+8% from last month",
+      trendUp: true,
+      color: "text-purple-600",
+      gradient: "from-purple-50 to-white"
     },
     {
       title: 'Low Stock Items',
       value: stats.lowStockProducts.length,
       icon: AlertTriangle,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
+      trend: stats.lowStockProducts.length > 0 ? "Action Needed" : "Inventory Healthy",
+      trendUp: stats.lowStockProducts.length === 0,
+      color: "text-orange-600",
+      gradient: "from-orange-50 to-white"
     },
   ];
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
-        <div>
-          <h1 className="font-display text-4xl font-bold text-rose-950">Dashboard</h1>
-          <p className="mt-2 text-muted-foreground">Welcome to your admin dashboard</p>
+      <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-serif text-3xl font-bold text-slate-900 tracking-tight">Dashboard Overview</h1>
+            <p className="mt-1 text-slate-500">Welcome back to your admin control center.</p>
+          </div>
+          <div className="flex gap-3">
+            <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
+              <Link to="/">View Store <ArrowUpRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </div>
         </div>
 
         {/* Stats grid */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {statCards.map((stat) => (
-            <Card key={stat.title}>
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4">
-                  <div className={cn('rounded-lg p-3', stat.bgColor)}>
-                    <stat.icon className={cn('h-6 w-6', stat.color)} />
+            <Card key={stat.title} className={cn("overflow-hidden transition-all hover:shadow-md border-slate-200 bg-gradient-to-br", stat.gradient)}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className={cn('rounded-full p-2.5 bg-white shadow-sm ring-1 ring-slate-100')}>
+                    <stat.icon className={cn('h-5 w-5', stat.color)} />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-semibold">{stat.value}</p>
-                  </div>
+                  {stat.trendUp ?
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100"><TrendingUp className="h-3 w-3 mr-1" /> {stat.trend}</Badge>
+                    : <Badge variant="secondary" className="bg-rose-100 text-rose-700 hover:bg-rose-100"><ArrowDownRight className="h-3 w-3 mr-1" /> {stat.trend}</Badge>
+                  }
+                </div>
+                <div className="mt-4">
+                  <h3 className="text-sm font-medium text-slate-500">{stat.title}</h3>
+                  <p className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700">{stat.value}</p>
                 </div>
               </CardContent>
             </Card>
@@ -109,137 +184,159 @@ const AdminDashboard: React.FC = () => {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Recent orders */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="font-display text-lg">Recent Orders</CardTitle>
-              <Link to="/admin/orders" className="text-sm text-primary hover:underline">
-                View All
-              </Link>
+          <Card className="overflow-hidden border-slate-200">
+            <CardHeader className="flex flex-row items-center justify-between bg-slate-50/50">
+              <div>
+                <CardTitle className="font-serif text-lg">Recent Orders</CardTitle>
+                <CardDescription>Latest transactions from customers</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" asChild className="text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+                <Link to="/admin/orders">
+                  View All <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+            <CardContent className="p-0">
+              <div className="max-h-[400px] overflow-y-auto">
                 {stats.recentOrders.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No orders found</p>
+                  <div className="p-8 text-center text-sm text-muted-foreground">No orders found</div>
                 ) : (
-                  stats.recentOrders.map((order: any) => (
-                    <div key={order._id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                          <Package className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium">{order._id.slice(-6).toUpperCase()}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(order.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-medium">₹{order.totalAmount.toLocaleString()}</p>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            'capitalize text-xs',
-                            order.status === 'delivered' && 'bg-green-100 text-green-800',
-                            order.status === 'shipped' && 'bg-purple-100 text-purple-800',
-                            order.status === 'pending' && 'bg-yellow-100 text-yellow-800'
-                          )}
-                        >
-                          {order.status}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent sticky top-0 bg-white z-10 shadow-sm">
+                        <TableHead className="w-[100px]">Order ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {stats.recentOrders.map((order: any) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.id.slice(-6).toUpperCase()}</TableCell>
+                          <TableCell className="text-muted-foreground">{new Date(order.createdAt).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                'capitalize font-normal',
+                                order.status === 'delivered' && 'bg-green-100 text-green-700 hover:bg-green-100',
+                                order.status === 'shipped' && 'bg-blue-100 text-blue-700 hover:bg-blue-100',
+                                order.status === 'pending' && 'bg-amber-100 text-amber-700 hover:bg-amber-100',
+                                order.status === 'processing' && 'bg-purple-100 text-purple-700 hover:bg-purple-100'
+                              )}
+                            >
+                              {order.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-medium">₹{order.totalAmount.toLocaleString()}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 )}
               </div>
             </CardContent>
           </Card>
 
           {/* Low stock alerts */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="font-display text-lg">Low Stock Alerts</CardTitle>
-              <Link to="/admin/products" className="text-sm text-primary hover:underline">
-                Manage Products
-              </Link>
+          <Card className="overflow-hidden border-slate-200">
+            <CardHeader className="flex flex-row items-center justify-between bg-slate-50/50">
+              <div>
+                <CardTitle className="font-serif text-lg">Low Stock Alerts</CardTitle>
+                <CardDescription>Items running low on inventory</CardDescription>
+              </div>
+              <Button variant="ghost" size="sm" asChild className="text-rose-600 hover:text-rose-700 hover:bg-rose-50">
+                <Link to="/admin/products">
+                  Manage <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
             </CardHeader>
-            <CardContent>
-              {stats.lowStockProducts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">All products are well stocked</p>
-              ) : (
-                <div className="space-y-4">
-                  {stats.lowStockProducts.map((product: any) => (
-                    <div key={product._id || product.id} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <img
-                          src={product.images[0]}
-                          alt={product.name}
-                          className="h-10 w-10 rounded-lg object-cover"
-                        />
-                        <div>
-                          <p className="text-sm font-medium line-clamp-1">{product.name}</p>
-                          <p className="text-xs text-muted-foreground capitalize">
-                            {product.category}
-                          </p>
+            <CardContent className="p-0">
+              <div className="max-h-[400px] overflow-y-auto">
+                {stats.lowStockProducts.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-muted-foreground">All products are well stocked</div>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {stats.lowStockProducts.map((item) => (
+                      <div key={item.variantId} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.image || 'https://placehold.co/100'}
+                            alt={item.name}
+                            className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
+                          />
+                          <div>
+                            <p className="text-sm font-medium line-clamp-1 text-slate-700">{item.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {item.size !== 'N/A' && <span className="font-medium text-slate-600">{item.size} • {item.color}</span>}
+                              {item.size === 'N/A' && <span className="capitalize">{item.category}</span>}
+                            </p>
+                          </div>
                         </div>
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'text-xs font-normal',
+                            item.stock === 0
+                              ? 'bg-red-100 text-red-700 hover:bg-red-100'
+                              : 'bg-orange-100 text-orange-700 hover:bg-orange-100'
+                          )}
+                        >
+                          {item.stock === 0 ? 'Out of Stock' : `${item.stock} left`}
+                        </Badge>
                       </div>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          'text-xs',
-                          product.stock === 0
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-orange-100 text-orange-800'
-                        )}
-                      >
-                        {product.stock === 0 ? 'Out of Stock' : `${product.stock} left`}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Quick actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-lg">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Link
-                to="/admin/products/new"
-                className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted"
-              >
-                <Package className="h-5 w-5 text-primary" />
-                <span className="font-medium">Add Product</span>
-              </Link>
-              <Link
-                to="/admin/orders"
-                className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted"
-              >
-                <ShoppingBag className="h-5 w-5 text-primary" />
-                <span className="font-medium">View Orders</span>
-              </Link>
-              <Link
-                to="/admin/products"
-                className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted"
-              >
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <span className="font-medium">Manage Inventory</span>
-              </Link>
-              <Link
-                to="/"
-                className="flex items-center gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted"
-              >
-                <Users className="h-5 w-5 text-primary" />
-                <span className="font-medium">View Store</span>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick actions */}
+        <section>
+          <h2 className="text-lg font-semibold mb-4 text-slate-800">Quick Actions</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Link
+              to="/admin/products/new"
+              className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-6 transition-all hover:border-rose-200 hover:shadow-md hover:shadow-rose-100"
+            >
+              <div className="p-3 rounded-full bg-rose-50 text-rose-600 transition-colors group-hover:bg-rose-100">
+                <Package className="h-6 w-6" />
+              </div>
+              <span className="font-medium text-slate-700 group-hover:text-rose-700">Add Product</span>
+            </Link>
+            <Link
+              to="/admin/orders"
+              className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-6 transition-all hover:border-blue-200 hover:shadow-md hover:shadow-blue-100"
+            >
+              <div className="p-3 rounded-full bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-100">
+                <ShoppingBag className="h-6 w-6" />
+              </div>
+              <span className="font-medium text-slate-700 group-hover:text-blue-700">View Orders</span>
+            </Link>
+            <Link
+              to="/admin/analytics"
+              className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-6 transition-all hover:border-purple-200 hover:shadow-md hover:shadow-purple-100"
+            >
+              <div className="p-3 rounded-full bg-purple-50 text-purple-600 transition-colors group-hover:bg-purple-100">
+                <TrendingUp className="h-6 w-6" />
+              </div>
+              <span className="font-medium text-slate-700 group-hover:text-purple-700">Analytics</span>
+            </Link>
+            <Link
+              to="/admin/users"
+              className="group flex flex-col items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white p-6 transition-all hover:border-orange-200 hover:shadow-md hover:shadow-orange-100"
+            >
+              <div className="p-3 rounded-full bg-orange-50 text-orange-600 transition-colors group-hover:bg-orange-100">
+                <Users className="h-6 w-6" />
+              </div>
+              <span className="font-medium text-slate-700 group-hover:text-orange-700">Manage Users</span>
+            </Link>
+          </div>
+        </section>
       </div>
     </AdminLayout>
   );

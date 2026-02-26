@@ -23,6 +23,13 @@ import { toast } from 'sonner';
 import { uploadToCloudinary } from '@/lib/upload';
 
 const AdminProductForm: React.FC = () => {
+  // Helper to find case-insensitive match in options
+  const findMatch = (value: string, options: string[]) => {
+    if (!value) return '';
+    const trimmedValue = value.trim().toLowerCase();
+    return options.find(opt => opt.toLowerCase() === trimmedValue) || value;
+  };
+
   const { id } = useParams();
   const navigate = useNavigate();
   const isEditing = Boolean(id);
@@ -39,7 +46,7 @@ const AdminProductForm: React.FC = () => {
     subCategory: '',
     sizeType: 'Alpha' as SizeType,
     stock: '',
-    sizes: [] as { size: string; stock: number }[],
+    sizes: [] as { size: string; colors: { color: string; stock: number; inStock: boolean }[] }[],
     colors: [] as string[],
     images: [] as string[],
     featured: false,
@@ -53,37 +60,65 @@ const AdminProductForm: React.FC = () => {
 
   const attributes = getProductAttributes(formData.category, formData.subCategory);
 
+  const [colorImageMap, setColorImageMap] = useState<Record<string, string>>({}); // Map image URL to Color
+
   useEffect(() => {
     if (isEditing) {
       const fetchProduct = async () => {
         try {
           const { data } = await api.get(`/products/${id}`);
+
+          // Reconstruct colorImageMap from backend data if available, otherwise try to infer or leave empty
+          const initialColorMap: Record<string, string> = {};
+          if (data.colorImages && Array.isArray(data.colorImages)) {
+            data.colorImages.forEach((ci: { color: string, image: string }) => {
+              initialColorMap[ci.image] = ci.color;
+            });
+          }
+
+
+
+          const rawCategory = data.category || '';
+          const categorySlug = rawCategory.trim().toLowerCase();
+
+          // Find subcategory match
+          const categoryItem = NAV_ITEMS.find(item => item.label.toLowerCase() === categorySlug);
+
+          const subCategoryOptions = categoryItem?.columns?.flatMap(col => col.items.map(i => i.label)) || [];
+          const matchedSubCategory = findMatch(data.subCategory, subCategoryOptions);
+
+          // Get attribute options based on category/subcategory
+          const attrOptions = getProductAttributes(categorySlug, matchedSubCategory);
+
           setFormData({
             name: data.name,
             description: data.description,
             price: data.price.toString(),
             originalPrice: data.originalPrice?.toString() || '',
-            category: data.category,
-            subCategory: data.subCategory || '',
+            category: categorySlug, // Use the slug for the Select value
+            subCategory: matchedSubCategory || '',
             sizeType: (data.sizeType as SizeType) || 'Alpha',
             stock: data.stock.toString(),
             sizes: Array.isArray(data.sizes)
               ? data.sizes.map((s: any) =>
                 typeof s === 'string'
-                  ? { size: s, stock: 0 } // Handle legacy string sizes
-                  : { size: s.size, stock: s.stock || 0 }
+                  ? { size: s, colors: [] } // Handle legacy string sizes
+                  : {
+                    size: s.size,
+                    colors: Array.isArray(s.colors) ? s.colors : []
+                  }
               )
               : [],
             colors: data.colors || [],
             images: data.images || [],
             featured: data.featured || false,
-            fit: data.fit || '',
-            pattern: data.pattern || '',
-            borderType: data.borderType || '',
-
-            occasion: data.occasion || '',
-            fabric: data.fabric || '',
+            fit: findMatch(data.fit, attrOptions.fit.options),
+            pattern: findMatch(data.pattern, attrOptions.pattern.options),
+            borderType: findMatch(data.borderType, attrOptions.borderType.options),
+            occasion: findMatch(data.occasion, attrOptions.occasion.options),
+            fabric: findMatch(data.fabric, attrOptions.fabric.options),
           });
+          setColorImageMap(initialColorMap);
         } catch (error) {
           console.error('Failed to fetch product:', error);
           toast.error('Failed to load product details');
@@ -188,9 +223,21 @@ const AdminProductForm: React.FC = () => {
   };
 
   const handleImageRemove = (index: number) => {
+    const imageUrl = formData.images[index];
     setFormData((prev) => ({
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
+    }));
+    // Remove from map
+    const newMap = { ...colorImageMap };
+    delete newMap[imageUrl];
+    setColorImageMap(newMap);
+  };
+
+  const handleImageColorChange = (imageUrl: string, color: string) => {
+    setColorImageMap(prev => ({
+      ...prev,
+      [imageUrl]: color
     }));
   };
 
@@ -199,10 +246,36 @@ const AdminProductForm: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Validation: Check if every selected color has at least one image
+      const missingColorImages = formData.colors.filter(color => {
+        // Check if any image is mapped to this color
+        const hasImage = Object.values(colorImageMap).includes(color);
+        return !hasImage;
+      });
+
+      if (missingColorImages.length > 0) {
+        toast.error(`Please assign an image for: ${missingColorImages.join(', ')}`);
+        setIsLoading(false);
+        return;
+      }
+
+      // Validate Fabric if shown
+      if (attributes.fabric.show && !formData.fabric) {
+        toast.error('Please select a fabric');
+        setIsLoading(false);
+        return;
+      }
+
       // Calculate total stock from all sizes and colors
       const totalStock = formData.sizes.reduce((acc, size) => {
         return acc + size.colors.reduce((sAcc, color) => sAcc + (color.stock || 0), 0);
       }, 0);
+
+      // Prepare colorImages array for backend
+      const colorImagesArray = Object.entries(colorImageMap).map(([image, color]) => ({
+        color,
+        image
+      }));
 
       const productData = {
         ...formData,
@@ -210,6 +283,7 @@ const AdminProductForm: React.FC = () => {
         originalPrice: formData.originalPrice ? Number(formData.originalPrice) : undefined,
         stock: totalStock,
         image: formData.images[0] || '',
+        colorImages: colorImagesArray
       };
 
       if (isEditing) {
@@ -228,6 +302,10 @@ const AdminProductForm: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+
+  const subCategoryOptions = NAV_ITEMS.find((item) => item.label.toLowerCase() === formData.category.toLowerCase())
+    ?.columns?.flatMap((col) => col.items.map(i => i.label)) || [];
 
   return (
     <AdminLayout>
@@ -299,7 +377,7 @@ const AdminProductForm: React.FC = () => {
               <div>
                 <Label htmlFor="subCategory">Sub Category</Label>
                 <Select
-                  value={formData.subCategory}
+                  value={findMatch(formData.subCategory, subCategoryOptions)}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, subCategory: value }))
                   }
@@ -309,13 +387,11 @@ const AdminProductForm: React.FC = () => {
                     <SelectValue placeholder="Select sub category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {NAV_ITEMS.find((item) => item.label.toLowerCase() === formData.category.toLowerCase())
-                      ?.columns?.flatMap((col) => col.items)
-                      .map((sub) => (
-                        <SelectItem key={sub.label} value={sub.label}>
-                          {sub.label}
-                        </SelectItem>
-                      ))}
+                    {subCategoryOptions.map((sub) => (
+                      <SelectItem key={sub} value={sub}>
+                        {sub}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -586,20 +662,39 @@ const AdminProductForm: React.FC = () => {
             <div className="mt-6">
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                 {formData.images.map((image, index) => (
-                  <div key={index} className="group relative aspect-[3/4]">
-                    <img
-                      src={image}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full rounded-lg object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => handleImageRemove(index)}
-                      className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                  <div key={index} className="group relative aspect-[3/4] flex flex-col">
+                    <div className="relative flex-1 overflow-hidden rounded-lg">
+                      <img
+                        src={image}
+                        alt=""
+                        referrerPolicy="no-referrer"
+                        className="h-full w-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleImageRemove(index)}
+                        className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-destructive text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="mt-2">
+                      <Select
+                        value={colorImageMap[image] || ''}
+                        onValueChange={(val) => handleImageColorChange(image, val)}
+                      >
+                        <SelectTrigger className="h-8 text-xs">
+                          <SelectValue placeholder="Select Color" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {formData.colors.map(c => (
+                            <SelectItem key={c} value={c} className="text-xs">
+                              {c}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 ))}
                 <button
