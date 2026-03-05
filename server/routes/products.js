@@ -38,128 +38,131 @@ router.get('/search', async (req, res) => {
   } catch (error) {
     console.error('Search error:', error);
     res.status(500).json({ message: error.message });
-    // Get product recommendations (Weighted Scoring)
-    router.get('/:id/recommendations', async (req, res) => {
-      try {
-        const { id } = req.params;
-        const targetProduct = await Product.findById(id);
+  }
+});
 
-        if (!targetProduct) {
-          return res.status(404).json({ message: 'Product not found' });
+// Get product recommendations (Weighted Scoring)
+router.get('/:id/recommendations', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const targetProduct = await Product.findById(id);
+
+    if (!targetProduct) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Fetch candidates (Optimization: Fetch only same category + slightly more, or all if small dataset)
+    // For 180 products, fetching all is fine.
+    const allProducts = await Product.find({ _id: { $ne: id } });
+
+    const recommendations = await getRecommendations(targetProduct, allProducts);
+
+    // Transform before sending
+    const transformed = recommendations.map(transformProduct);
+    res.json(transformed);
+
+  } catch (error) {
+    console.error('Recommendation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get single product
+// Get "Users Also Bought" recommendations (Collaborative Filtering)
+router.get('/:id/also-bought', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Find completed orders containing this product
+    // Optimization: Look at last 50 orders instead of 10 for better data
+    const orders = await Order.find({
+      'items.product': id,
+      status: { $ne: 'cancelled' }
+    })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .populate('items.product');
+
+    if (orders.length === 0) {
+      return res.json([]);
+    }
+
+    // 2. Extract co-occurring products with simple frequency counting
+    const productFrequency = {};
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (!item.product || !item.product._id) return;
+
+        const productId = item.product._id.toString();
+        // Skip the target product itself
+        if (productId !== id) {
+          if (!productFrequency[productId]) {
+            productFrequency[productId] = {
+              product: item.product,
+              count: 0
+            };
+          }
+          productFrequency[productId].count += 1;
         }
-
-        // Fetch candidates (Optimization: Fetch only same category + slightly more, or all if small dataset)
-        // For 180 products, fetching all is fine.
-        const allProducts = await Product.find({ _id: { $ne: id } });
-
-        const recommendations = await getRecommendations(targetProduct, allProducts);
-
-        // Transform before sending
-        const transformed = recommendations.map(transformProduct);
-        res.json(transformed);
-
-      } catch (error) {
-        console.error('Recommendation error:', error);
-        res.status(500).json({ message: error.message });
-      }
+      });
     });
 
-    // Get single product
-    // Get "Users Also Bought" recommendations (Collaborative Filtering)
-    router.get('/:id/also-bought', async (req, res) => {
-      try {
-        const { id } = req.params;
+    // 3. Sort by frequency and take top 4
+    const frequentProducts = Object.values(productFrequency)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 4)
+      .map(item => transformProduct(item.product));
 
-        // 1. Find completed orders containing this product
-        // Optimization: Look at last 50 orders instead of 10 for better data
-        const orders = await Order.find({
-          'items.product': id,
-          status: { $ne: 'cancelled' }
-        })
-          .sort({ createdAt: -1 })
-          .limit(50)
-          .populate('items.product');
+    res.json(frequentProducts);
 
-        if (orders.length === 0) {
-          return res.json([]);
-        }
+  } catch (error) {
+    console.error('Also Bought error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
 
-        // 2. Extract co-occurring products with simple frequency counting
-        const productFrequency = {};
-        orders.forEach(order => {
-          order.items.forEach(item => {
-            if (!item.product || !item.product._id) return;
+// Get single product
+router.get('/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.json(transformProduct(product));
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
-            const productId = item.product._id.toString();
-            // Skip the target product itself
-            if (productId !== id) {
-              if (!productFrequency[productId]) {
-                productFrequency[productId] = {
-                  product: item.product,
-                  count: 0
-                };
-              }
-              productFrequency[productId].count += 1;
-            }
-          });
-        });
+// Create product
+router.post('/', async (req, res) => {
+  const product = new Product(req.body);
+  try {
+    const newProduct = await product.save();
+    res.status(201).json(newProduct);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
-        // 3. Sort by frequency and take top 4
-        const frequentProducts = Object.values(productFrequency)
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 4)
-          .map(item => transformProduct(item.product));
+// Update product
+router.put('/:id', async (req, res) => {
+  try {
+    const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.json(product);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
-        res.json(frequentProducts);
+// Delete product
+router.delete('/:id', async (req, res) => {
+  try {
+    const product = await Product.findByIdAndDelete(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+    res.json({ message: 'Product deleted' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 
-      } catch (error) {
-        console.error('Also Bought error:', error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    // Get single product
-    router.get('/:id', async (req, res) => {
-      try {
-        const product = await Product.findById(req.params.id);
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.json(transformProduct(product));
-      } catch (error) {
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    // Create product
-    router.post('/', async (req, res) => {
-      const product = new Product(req.body);
-      try {
-        const newProduct = await product.save();
-        res.status(201).json(newProduct);
-      } catch (error) {
-        res.status(400).json({ message: error.message });
-      }
-    });
-
-    // Update product
-    router.put('/:id', async (req, res) => {
-      try {
-        const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.json(product);
-      } catch (error) {
-        res.status(400).json({ message: error.message });
-      }
-    });
-
-    // Delete product
-    router.delete('/:id', async (req, res) => {
-      try {
-        const product = await Product.findByIdAndDelete(req.params.id);
-        if (!product) return res.status(404).json({ message: 'Product not found' });
-        res.json({ message: 'Product deleted' });
-      } catch (error) {
-        res.status(500).json({ message: error.message });
-      }
-    });
-
-    export default router;
+export default router;

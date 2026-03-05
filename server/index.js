@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import orderRoutes from './routes/orders.js';
 import cartRoutes from './routes/cart.js';
+import chatRoutes from './routes/chat.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,6 +48,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/chat', chatRoutes);
 
 const PORT = process.env.PORT || 5000;
 

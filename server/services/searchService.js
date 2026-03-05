@@ -17,9 +17,31 @@ const SYNONYMS = {
     'trouser': ['pant', 'pants', 'trousers', 'bottoms'],
     'sari': ['saree', 'sarees'],
     'saree': ['sari', 'sarees'],
-    'men': ['mens', 'male', 'boy', 'boys'],
-    'women': ['womens', 'female', 'girl', 'girls', 'ladies'],
-    'kids': ['kid', 'child', 'children', 'boys', 'girls']
+    'men': ['mens', 'male'],
+    'women': ['womens', 'female', 'ladies'],
+    'kids': ['kid', 'child', 'children', 'boys', 'girls', 'boy', 'girl', 'infant']
+};
+
+const KNOWN_COLORS = ['black', 'white', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'grey', 'gray', 'orange', 'brown', 'navy', 'maroon', 'gold', 'silver', 'beige', 'peach'];
+
+// Map to identify specific category intents from tokens
+const CATEGORY_MAP = {
+    'men': 'Men',
+    'mens': 'Men',
+    'male': 'Men',
+    'women': 'Women',
+    'womens': 'Women',
+    'female': 'Women',
+    'ladies': 'Women',
+    'kids': 'Kids',
+    'kid': 'Kids',
+    'child': 'Kids',
+    'children': 'Kids',
+    'boy': 'Kids',
+    'boys': 'Kids',
+    'girl': 'Kids',
+    'girls': 'Kids',
+    'infant': 'Kids'
 };
 
 /**
@@ -111,6 +133,12 @@ export const performSmartSearch = async (queryParams) => {
         baseTokens = filteredTokens;
     }
 
+    // Extract colors mentioned in the search term
+    const requestedColors = baseTokens.filter(t => KNOWN_COLORS.includes(t));
+
+    // Extract intended categories mentioned in the search term
+    const requestedCategories = [...new Set(baseTokens.map(t => CATEGORY_MAP[t]).filter(Boolean))];
+
     // Enhance tokens with Synonyms and Stems
     let expandedTokenGroups = baseTokens.map(token => {
         const group = new Set([token]);
@@ -124,11 +152,12 @@ export const performSmartSearch = async (queryParams) => {
         }
 
         // Return as An OR Block Regex String: "(token1|stem1|synonym1)"
-        return `(${Array.from(group).join('|')})`;
+        // We use \b at the start to ensure we aren't matching letters inside words (e.g., 't' inside 'Printed')
+        return `(\\b${Array.from(group).join('|\\b')})`;
     });
 
     // Combine tokens into a regex that requires ALL token groups to appear somewhere in the string
-    // e.g., ["(shirt|shirts)", "(men|mens|male)"] -> "(?=.*(shirt|shirts))(?=.*(men|mens|male))"
+    // e.g., ["(\bshirt|\bshirts)", "(\bmen|\bmens|\bmale)"] -> "(?=.*(\bshirt|\bshirts))(?=.*(\bmen|\bmens|\bmale))"
     const strictRegexPattern = expandedTokenGroups.map(groupMatch => `(?=.*${groupMatch})`).join('');
 
     // Execute aggregation
@@ -146,7 +175,13 @@ export const performSmartSearch = async (queryParams) => {
                         { $ifNull: ["$subCategory", ""] }, " ",
                         { $ifNull: ["$description", ""] }, " ",
                         { $ifNull: ["$fabric", ""] }, " ",
-                        { $ifNull: ["$color", ""] }
+                        {
+                            $reduce: {
+                                input: { $ifNull: ["$colors", []] },
+                                initialValue: "",
+                                in: { $concat: ["$$value", " ", "$$this"] }
+                            }
+                        }
                     ]
                 }
             }
@@ -176,11 +211,62 @@ export const performSmartSearch = async (queryParams) => {
                 }
             }
         },
+        // Provide a massive boost if a specific color requested in the search exists in the product's colors array
+        {
+            $addFields: {
+                colorBoostScore: {
+                    $cond: [
+                        {
+                            $and: [
+                                { $gt: [requestedColors.length, 0] },
+                                {
+                                    $gt: [
+                                        {
+                                            $size: {
+                                                $filter: {
+                                                    input: { $ifNull: ["$colors", []] },
+                                                    as: "c",
+                                                    cond: {
+                                                        $in: [{ $toLower: "$$c" }, requestedColors]
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        0
+                                    ]
+                                }
+                            ]
+                        },
+                        500, // +500 points if the color matches
+                        0
+                    ]
+                }
+            }
+        },
+        // Provide a massive boost if a specific category requested in the search matches the product's category
+        {
+            $addFields: {
+                categoryBoostScore: {
+                    $cond: [
+                        {
+                            $and: [
+                                { $gt: [requestedCategories.length, 0] },
+                                { $in: ["$category", requestedCategories] }
+                            ]
+                        },
+                        1000, // +1000 points for exact demographic category match
+                        0
+                    ]
+                }
+            }
+        },
         {
             $addFields: {
                 rankingScore: {
                     $add: [
                         "$exactMatchScore",
+                        "$colorBoostScore",
+                        "$categoryBoostScore",
                         { $multiply: ["$purchaseCount", 0.1] },
                         { $multiply: ["$viewCount", 0.01] }
                     ]
@@ -246,12 +332,63 @@ export const performSmartSearch = async (queryParams) => {
                 }
             }
         },
-        // 5. Final Ranking for Relaxed searches
+        // 5. Provide Color Boost for relaxed matches too
+        {
+            $addFields: {
+                colorBoostScore: {
+                    $cond: [
+                        {
+                            $and: [
+                                { $gt: [requestedColors.length, 0] },
+                                {
+                                    $gt: [
+                                        {
+                                            $size: {
+                                                $filter: {
+                                                    input: { $ifNull: ["$colors", []] },
+                                                    as: "c",
+                                                    cond: {
+                                                        $in: [{ $toLower: "$$c" }, requestedColors]
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        0
+                                    ]
+                                }
+                            ]
+                        },
+                        500, // +500 points if the color matches
+                        0
+                    ]
+                }
+            }
+        },
+        // 6. Provide Category/Demographic Boost for relaxed matches too
+        {
+            $addFields: {
+                categoryBoostScore: {
+                    $cond: [
+                        {
+                            $and: [
+                                { $gt: [requestedCategories.length, 0] },
+                                { $in: ["$category", requestedCategories] }
+                            ]
+                        },
+                        1000, // +1000 points for exact demographic category match
+                        0
+                    ]
+                }
+            }
+        },
+        // 7. Final Ranking for Relaxed searches
         {
             $addFields: {
                 rankingScore: {
                     $add: [
                         "$keywordDensity",
+                        "$colorBoostScore",
+                        "$categoryBoostScore",
                         { $multiply: ["$purchaseCount", 0.1] },
                         { $multiply: ["$viewCount", 0.01] }
                     ]

@@ -73,7 +73,7 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Desktop navigation */}
-        <nav className="hidden h-full md:flex items-center gap-8">
+        <nav className="hidden h-full lg:flex items-center gap-6">
           <Link
             to="/shop"
             className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -129,12 +129,27 @@ const Header: React.FC = () => {
           )}
         </nav>
 
+        {/* Search Bar - Desktop */}
+        <div className="hidden lg:flex flex-1 max-w-sm mx-8">
+          <form onSubmit={handleSearch} className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Search for products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 bg-muted/40 focus-visible:bg-background rounded-full border-muted-foreground/20"
+            />
+          </form>
+        </div>
+
         {/* Actions */}
         <div className="flex items-center gap-2">
-          {/* Search toggle */}
+          {/* Search toggle - Mobile Only */}
           <Button
             variant="ghost"
             size="icon"
+            className="lg:hidden"
             onClick={() => setIsSearchOpen(!isSearchOpen)}
           >
             <Search className="h-5 w-5" />
@@ -187,10 +202,10 @@ const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Search bar */}
+      {/* Search bar dropdown - Mobile Only */}
       <div
         className={cn(
-          'absolute left-0 right-0 top-full border-b border-border bg-background transition-all duration-300',
+          'absolute left-0 right-0 top-full border-b border-border bg-background transition-all duration-300 lg:hidden',
           isSearchOpen ? 'visible opacity-100' : 'invisible opacity-0'
         )}
       >

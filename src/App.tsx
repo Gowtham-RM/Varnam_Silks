@@ -29,8 +29,9 @@ const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
-const TestRecommendations = lazy(() => import("./pages/TestRecommendations"));
+import TestRecommendations from "./pages/TestRecommendations";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { ChatBot } from "./components/chat/ChatBot";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
                   <Route path="/test-rec" element={<TestRecommendations />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                <ChatBot />
               </Suspense>
             </BrowserRouter>
           </TooltipProvider>

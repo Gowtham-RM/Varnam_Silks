@@ -18,17 +18,42 @@ const Shop: React.FC = () => {
 
   useEffect(() => {
     const fetchProducts = async () => {
+      setLoading(true);
       try {
-        const { data } = await api.get('/products');
-        setProducts(data);
+        // Construct query parameters for the smart search API
+        const params = new URLSearchParams();
+        const search = searchParams.get('search');
+        const category = searchParams.get('category');
+        const subCategory = searchParams.get('sub');
+
+        if (search) params.append('q', search);
+        if (category) params.append('category', category);
+        if (subCategory) params.append('subCategory', subCategory);
+
+        // If there's any search or major filter, hit the smart endpoint. Otherwise, get all.
+        const endpoint = (search || category || subCategory)
+          ? `/products/search?${params.toString()}`
+          : '/products';
+
+        console.log('Fetching:', endpoint);
+        const { data } = await api.get(endpoint);
+
+        // The search API returns { products: [...] }, while the base API returns an array [...]
+        setProducts(data.products || data);
       } catch (error) {
         console.error('Failed to fetch products', error);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
-  }, []);
+
+    // Slight debounce for fetch to let filters settle
+    const timeoutId = setTimeout(() => {
+      fetchProducts();
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchParams]);
 
   const maxPrice = useMemo(() => {
     if (products.length === 0) return 50000;
@@ -66,31 +91,11 @@ const Shop: React.FC = () => {
     }));
   }, [searchParams]);
 
-  // Filter and sort products
+  // Filter and sort products (for price, size, color, attributes which are still maintained in local state)
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // Search filter
-    const search = searchParams.get('search')?.toLowerCase();
-    if (search) {
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(search) ||
-          p.description.toLowerCase().includes(search) ||
-          p.category.toLowerCase().includes(search)
-      );
-    }
-
-    // Category filter
-    if (filters.category) {
-      result = result.filter((p) => p.category.toLowerCase() === filters.category.toLowerCase());
-    }
-
-    // Sub-category filter
-    const subCategory = searchParams.get('sub');
-    if (subCategory) {
-      result = result.filter((p) => p.subCategory?.toLowerCase() === subCategory.toLowerCase());
-    }
+    // Note: Search, Category, and SubCategory are now handled by the Backend API.
 
     // Price filter
     result = result.filter(
