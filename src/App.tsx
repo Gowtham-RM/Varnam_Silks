@@ -32,6 +32,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 import TestRecommendations from "./pages/TestRecommendations";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ChatBot } from "./components/chat/ChatBot";
+import ScrollToTop from "./components/ScrollToTop";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <ScrollToTop />
               <Suspense fallback={null}>
                 <Routes>
                   {/* User routes */}

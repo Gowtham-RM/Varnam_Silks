@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, ShoppingBag, Star } from 'lucide-react';
+import { Star, Heart, ShoppingBag, Eye, AlertTriangle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
@@ -70,10 +71,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
               -{discount}%
             </span>
           )}
-          {product.stock < 10 && product.stock > 0 && (
-            <span className="rounded-full bg-gold px-2 py-1 text-xs font-medium text-foreground">
+          {product.stock < 3 && product.stock > 0 && (
+            <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100 border-none font-medium shadow-sm flex items-center gap-1 backdrop-blur-md bg-orange-100/90">
+              <AlertTriangle className="h-3 w-3" />
               Low Stock
-            </span>
+            </Badge>
           )}
           {product.stock === 0 && (
             <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">

@@ -12,7 +12,7 @@ export const getSimulatedData = () => {
     const totalRevenue = history.reduce((sum: number, order: any) => sum + order.totalAmount, 0);
     const totalOrders = history.length;
     const recentOrders = history.slice().reverse().slice(0, 5);
-    const lowStockProductList = products.filter(p => p.stock <= 15);
+    const lowStockProductList = products.filter(p => p.stock < 3);
 
     return {
         historicalOrders: history,

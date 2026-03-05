@@ -125,8 +125,8 @@ export const getTrendingProducts = (orders: Order[], products: Product[], limit 
 };
 
 // 4. Low Stock Alerts
-export const getLowStockProducts = (products: Product[], threshold = 10): Product[] => {
-    return products.filter(p => p.stock <= threshold);
+export const getLowStockProducts = (products: Product[], threshold = 3): Product[] => {
+    return products.filter(p => p.stock < threshold);
 };
 
 // 5. Product Associations (Apriori Light - "Bought Together")

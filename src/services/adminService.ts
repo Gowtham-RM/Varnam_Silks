@@ -19,7 +19,7 @@ export const fetchRealAdminStats = async () => {
                 product.sizes.forEach((sizeObj: any) => {
                     if (sizeObj.colors && Array.isArray(sizeObj.colors)) {
                         sizeObj.colors.forEach((colorObj: any) => {
-                            if (colorObj.stock <= 3) {
+                            if (colorObj.stock < 3) {
                                 lowStockSummary.push({
                                     id: product._id || product.id,
                                     name: product.name,
@@ -34,7 +34,7 @@ export const fetchRealAdminStats = async () => {
                         });
                     }
                 });
-            } else if (product.stock <= 3) {
+            } else if (product.stock < 3) {
                 // Fallback for products without variants
                 const productId = product._id || product.id;
                 lowStockSummary.push({

@@ -170,17 +170,17 @@ const AdminProducts: React.FC = () => {
                     <TableCell>
                       <Badge
                         variant="secondary"
-                        className={cn(
+                        className={
                           product.stock === 0
-                            ? 'bg-red-100 text-red-800'
-                            : product.stock < 10
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-green-100 text-green-800'
-                        )}
+                            ? 'bg-red-100 text-red-700'
+                            : product.stock < 3
+                              ? 'bg-orange-100 text-orange-700'
+                              : 'bg-green-100 text-green-700'
+                        }
                       >
                         {product.stock === 0
                           ? 'Out of Stock'
-                          : product.stock < 10
+                          : product.stock < 3
                             ? 'Low Stock'
                             : 'In Stock'}
                       </Badge>

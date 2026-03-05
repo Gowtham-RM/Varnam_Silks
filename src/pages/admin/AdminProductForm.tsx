@@ -58,6 +58,10 @@ const AdminProductForm: React.FC = () => {
     fabric: '',
   });
 
+  const [isCustomAttribute, setIsCustomAttribute] = useState<Record<string, boolean>>({});
+  const [customColorsList, setCustomColorsList] = useState<string[]>([]);
+  const [newColorInput, setNewColorInput] = useState('');
+
   const attributes = getProductAttributes(formData.category, formData.subCategory);
 
   const [colorImageMap, setColorImageMap] = useState<Record<string, string>>({}); // Map image URL to Color
@@ -125,7 +129,24 @@ const AdminProductForm: React.FC = () => {
             occasion: findMatch(data.occasion, attrOptions.occasion.options),
             fabric: findMatch(data.fabric, attrOptions.fabric.options),
           });
+
           setColorImageMap(initialColorMap);
+
+          // Setup custom colors
+          if (data.colors) {
+            const extraColors = data.colors.filter((c: string) => !colors.includes(c));
+            setCustomColorsList(extraColors);
+          }
+
+          // Setup custom toggle states if the loaded attribute isn't in the default options
+          const customAttrStates: Record<string, boolean> = {};
+          if (data.fabric && !attrOptions.fabric.options.includes(data.fabric)) customAttrStates.fabric = true;
+          if (data.fit && !attrOptions.fit.options.includes(data.fit)) customAttrStates.fit = true;
+          if (data.pattern && !attrOptions.pattern.options.includes(data.pattern)) customAttrStates.pattern = true;
+          if (data.borderType && !attrOptions.borderType.options.includes(data.borderType)) customAttrStates.borderType = true;
+          if (data.occasion && !attrOptions.occasion.options.includes(data.occasion)) customAttrStates.occasion = true;
+          setIsCustomAttribute(customAttrStates);
+
         } catch (error) {
           console.error('Failed to fetch product:', error);
           toast.error('Failed to load product details');
@@ -214,6 +235,16 @@ const AdminProductForm: React.FC = () => {
         sizes: newSizes
       };
     });
+  };
+
+  const handleAddCustomColor = () => {
+    const colorToAdd = newColorInput.trim();
+    if (colorToAdd && !colors.includes(colorToAdd) && !customColorsList.includes(colorToAdd)) {
+      setCustomColorsList(prev => [...prev, colorToAdd]);
+      // Optionally auto-toggle it on
+      handleColorToggle(colorToAdd);
+    }
+    setNewColorInput('');
   };
 
   const handleImageAdd = () => {
@@ -445,96 +476,181 @@ const AdminProductForm: React.FC = () => {
                 <div className="mt-6 grid gap-5 sm:grid-cols-2">
                   {attributes.fabric.show && (
                     <div>
-                      <Label htmlFor="fabric">Fabric</Label>
-                      <Select
-                        value={formData.fabric}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, fabric: value }))}
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select fabric" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {attributes.fabric.options.map(opt => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label htmlFor="fabric">Fabric</Label>
+                        <button type="button" onClick={() => setIsCustomAttribute(prev => ({ ...prev, fabric: !prev.fabric }))} className="text-xs text-primary hover:underline">
+                          {isCustomAttribute.fabric ? 'Select from list' : 'Add custom'}
+                        </button>
+                      </div>
+                      {isCustomAttribute.fabric ? (
+                        <Input
+                          name="fabric"
+                          value={formData.fabric}
+                          onChange={handleInputChange}
+                          placeholder="Enter custom fabric"
+                        />
+                      ) : (
+                        <Select
+                          value={formData.fabric}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, fabric: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select fabric" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {attributes.fabric.options.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                            {formData.fabric && !attributes.fabric.options.includes(formData.fabric) && (
+                              <SelectItem value={formData.fabric}>{formData.fabric}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
 
                   {attributes.fit.show && (
                     <div>
-                      <Label htmlFor="fit">Fit</Label>
-                      <Select
-                        value={formData.fit}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, fit: value }))}
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select fit" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {attributes.fit.options.map(opt => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label htmlFor="fit">Fit</Label>
+                        <button type="button" onClick={() => setIsCustomAttribute(prev => ({ ...prev, fit: !prev.fit }))} className="text-xs text-primary hover:underline">
+                          {isCustomAttribute.fit ? 'Select from list' : 'Add custom'}
+                        </button>
+                      </div>
+                      {isCustomAttribute.fit ? (
+                        <Input
+                          name="fit"
+                          value={formData.fit}
+                          onChange={handleInputChange}
+                          placeholder="Enter custom fit"
+                        />
+                      ) : (
+                        <Select
+                          value={formData.fit}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, fit: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select fit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {attributes.fit.options.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                            {formData.fit && !attributes.fit.options.includes(formData.fit) && (
+                              <SelectItem value={formData.fit}>{formData.fit}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
 
                   {attributes.pattern.show && (
                     <div>
-                      <Label htmlFor="pattern">Pattern</Label>
-                      <Select
-                        value={formData.pattern}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, pattern: value }))}
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select pattern" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {attributes.pattern.options.map(opt => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label htmlFor="pattern">Pattern</Label>
+                        <button type="button" onClick={() => setIsCustomAttribute(prev => ({ ...prev, pattern: !prev.pattern }))} className="text-xs text-primary hover:underline">
+                          {isCustomAttribute.pattern ? 'Select from list' : 'Add custom'}
+                        </button>
+                      </div>
+                      {isCustomAttribute.pattern ? (
+                        <Input
+                          name="pattern"
+                          value={formData.pattern}
+                          onChange={handleInputChange}
+                          placeholder="Enter custom pattern"
+                        />
+                      ) : (
+                        <Select
+                          value={formData.pattern}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, pattern: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select pattern" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {attributes.pattern.options.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                            {formData.pattern && !attributes.pattern.options.includes(formData.pattern) && (
+                              <SelectItem value={formData.pattern}>{formData.pattern}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
 
                   {attributes.borderType.show && (
                     <div>
-                      <Label htmlFor="borderType">Border Type</Label>
-                      <Select
-                        value={formData.borderType}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, borderType: value }))}
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select border type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {attributes.borderType.options.map(opt => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label htmlFor="borderType">Border Type</Label>
+                        <button type="button" onClick={() => setIsCustomAttribute(prev => ({ ...prev, borderType: !prev.borderType }))} className="text-xs text-primary hover:underline">
+                          {isCustomAttribute.borderType ? 'Select from list' : 'Add custom'}
+                        </button>
+                      </div>
+                      {isCustomAttribute.borderType ? (
+                        <Input
+                          name="borderType"
+                          value={formData.borderType}
+                          onChange={handleInputChange}
+                          placeholder="Enter custom border type"
+                        />
+                      ) : (
+                        <Select
+                          value={formData.borderType}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, borderType: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select border type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {attributes.borderType.options.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                            {formData.borderType && !attributes.borderType.options.includes(formData.borderType) && (
+                              <SelectItem value={formData.borderType}>{formData.borderType}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
 
                   {attributes.occasion.show && (
                     <div>
-                      <Label htmlFor="occasion">Occasion</Label>
-                      <Select
-                        value={formData.occasion}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, occasion: value }))}
-                      >
-                        <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select occasion" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {attributes.occasion.options.map(opt => (
-                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label htmlFor="occasion">Occasion</Label>
+                        <button type="button" onClick={() => setIsCustomAttribute(prev => ({ ...prev, occasion: !prev.occasion }))} className="text-xs text-primary hover:underline">
+                          {isCustomAttribute.occasion ? 'Select from list' : 'Add custom'}
+                        </button>
+                      </div>
+                      {isCustomAttribute.occasion ? (
+                        <Input
+                          name="occasion"
+                          value={formData.occasion}
+                          onChange={handleInputChange}
+                          placeholder="Enter custom occasion"
+                        />
+                      ) : (
+                        <Select
+                          value={formData.occasion}
+                          onValueChange={(value) => setFormData(prev => ({ ...prev, occasion: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select occasion" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {attributes.occasion.options.map(opt => (
+                              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                            ))}
+                            {formData.occasion && !attributes.occasion.options.includes(formData.occasion) && (
+                              <SelectItem value={formData.occasion}>{formData.occasion}</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   )}
                 </div>
@@ -623,7 +739,7 @@ const AdminProductForm: React.FC = () => {
               <div>
                 <Label>Colors</Label>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {colors.map((color) => (
+                  {[...colors, ...customColorsList].map((color) => (
                     <label
                       key={color}
                       className="flex cursor-pointer items-center gap-2 rounded-lg border border-border px-3 py-1.5 transition-colors hover:bg-muted"
@@ -650,6 +766,22 @@ const AdminProductForm: React.FC = () => {
                       <span className="text-sm">{color}</span>
                     </label>
                   ))}
+                </div>
+                <div className="mt-3 flex items-center gap-2 max-w-sm">
+                  <Input
+                    placeholder="Add custom color..."
+                    value={newColorInput}
+                    onChange={(e) => setNewColorInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomColor();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="secondary" onClick={handleAddCustomColor}>
+                    Add
+                  </Button>
                 </div>
               </div>
 

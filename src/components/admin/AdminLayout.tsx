@@ -66,7 +66,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
         <nav className="flex flex-col gap-2 p-4">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.href;
+            const isActive = item.href === '/admin'
+              ? location.pathname === '/admin'
+              : location.pathname.startsWith(item.href);
             return (
               <Link
                 key={item.href}
@@ -113,7 +115,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       )}
 
       {/* Main content */}
-      <div className="flex-1 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
         {/* Top bar */}
         <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background px-4 lg:px-8">
           <Button
@@ -137,7 +139,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </header>
 
         {/* Page content */}
-        <main className="p-4 lg:p-8">{children}</main>
+        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden min-w-0">{children}</main>
       </div>
     </div>
   );

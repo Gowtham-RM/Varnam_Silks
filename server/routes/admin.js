@@ -35,8 +35,8 @@ router.get('/stats', async (req, res) => {
                 .populate('items.product', 'name images')
                 .populate('user', 'email'),
 
-            // Low stock products (< 10)
-            Product.find({ stock: { $lt: 10 } })
+            // Low stock products (< 3)
+            Product.find({ stock: { $lt: 3 } })
                 .limit(5)
                 .select('name category stock images')
         ]);

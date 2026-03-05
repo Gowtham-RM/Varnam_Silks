@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, ShoppingBag, DollarSign, AlertTriangle, Package, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, ArrowRight } from 'lucide-react';
+import { Users, ShoppingBag, DollarSign, AlertTriangle, Package, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight, ArrowRight, ChevronDown, ChevronRight } from 'lucide-react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -38,6 +38,11 @@ interface AdminStats {
 const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedLowStock, setExpandedLowStock] = useState<Record<string, boolean>>({});
+
+  const toggleLowStock = (id: string) => {
+    setExpandedLowStock(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -258,33 +263,68 @@ const AdminDashboard: React.FC = () => {
                   <div className="p-8 text-center text-sm text-muted-foreground">All products are well stocked</div>
                 ) : (
                   <div className="divide-y divide-slate-100">
-                    {stats.lowStockProducts.map((item) => (
-                      <div key={item.variantId} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={item.image || 'https://placehold.co/100'}
-                            alt={item.name}
-                            className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
-                          />
-                          <div>
-                            <p className="text-sm font-medium line-clamp-1 text-slate-700">{item.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.size !== 'N/A' && <span className="font-medium text-slate-600">{item.size} • {item.color}</span>}
-                              {item.size === 'N/A' && <span className="capitalize">{item.category}</span>}
-                            </p>
+                    {Object.values(
+                      stats.lowStockProducts.reduce((acc, item) => {
+                        if (!acc[item.id]) {
+                          acc[item.id] = { ...item, variants: [] };
+                        }
+                        acc[item.id].variants.push(item);
+                        return acc;
+                      }, {} as Record<string, any>)
+                    ).map((group: any) => (
+                      <div key={group.id} className="flex flex-col">
+                        <div
+                          className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                          onClick={() => toggleLowStock(group.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={group.image || 'https://placehold.co/100'}
+                              alt={group.name}
+                              className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
+                            />
+                            <div>
+                              <p className="text-sm font-medium line-clamp-1 text-slate-700">{group.name}</p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {group.category} • {group.variants.length} variant{group.variants.length !== 1 ? 's' : ''} low stock
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="secondary"
+                              className={cn(
+                                'text-xs font-normal',
+                                group.variants.some((v: any) => v.stock === 0)
+                                  ? 'bg-red-100 text-red-700 hover:bg-red-100'
+                                  : 'bg-orange-100 text-orange-700 hover:bg-orange-100'
+                              )}
+                            >
+                              {group.variants.some((v: any) => v.stock === 0) ? 'Out of Stock' : 'Low Stock'}
+                            </Badge>
+                            {expandedLowStock[group.id] ? <ChevronDown className="h-4 w-4 text-slate-400" /> : <ChevronRight className="h-4 w-4 text-slate-400" />}
                           </div>
                         </div>
-                        <Badge
-                          variant="secondary"
-                          className={cn(
-                            'text-xs font-normal',
-                            item.stock === 0
-                              ? 'bg-red-100 text-red-700 hover:bg-red-100'
-                              : 'bg-orange-100 text-orange-700 hover:bg-orange-100'
-                          )}
-                        >
-                          {item.stock === 0 ? 'Out of Stock' : `${item.stock} left`}
-                        </Badge>
+                        {expandedLowStock[group.id] && (
+                          <div className="bg-slate-50/50 p-2 pl-14 divide-y divide-slate-100 border-t border-slate-100">
+                            {group.variants.map((variant: any) => (
+                              <div key={variant.variantId} className="flex items-center justify-between py-2 text-sm">
+                                <span className="text-slate-600">
+                                  {variant.size !== 'N/A' && <span className="font-medium">{variant.size}</span>}
+                                  {variant.size !== 'N/A' && variant.color !== 'N/A' && ' • '}
+                                  {variant.color !== 'N/A' && <span>{variant.color}</span>}
+                                  {variant.size === 'N/A' && variant.color === 'N/A' && 'Default'}
+                                </span>
+                                <span className={cn(
+                                  "font-medium",
+                                  variant.stock === 0 ? "text-red-600" : "text-orange-600"
+                                )}>
+                                  {variant.stock === 0 ? '0 left' : `${variant.stock} left`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

@@ -154,12 +154,12 @@ const SmartInsights = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-7">
-                <Card className="col-span-4">
+                <Card className="md:col-span-4">
                     <CardHeader>
                         <CardTitle className="font-serif tracking-wide uppercase text-sm font-semibold">Monthly Revenue</CardTitle>
                     </CardHeader>
-                    <CardContent className="pl-2">
-                        <ChartContainer config={revenueChartConfig} className="h-[300px] w-full">
+                    <CardContent className="pl-2 w-full min-w-0">
+                        <ChartContainer config={revenueChartConfig} className="h-[300px] w-full min-w-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={analyticsData.monthlyData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -168,6 +168,7 @@ const SmartInsights = () => {
                                         tickLine={false}
                                         axisLine={false}
                                         tickMargin={8}
+                                        padding={{ left: 15, right: 15 }}
                                         tick={{ fill: '#6B7280', fontSize: 12 }}
                                     />
                                     <YAxis
@@ -193,12 +194,12 @@ const SmartInsights = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="col-span-3">
+                <Card className="md:col-span-3">
                     <CardHeader>
                         <CardTitle className="font-serif tracking-wide uppercase text-sm font-semibold">Orders Per Month</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full">
+                    <CardContent className="w-full min-w-0">
+                        <div className="h-[300px] w-full min-w-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={analyticsData.monthlyData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
@@ -207,6 +208,7 @@ const SmartInsights = () => {
                                         tickLine={false}
                                         axisLine={false}
                                         tickMargin={8}
+                                        padding={{ left: 15, right: 15 }}
                                         tick={{ fill: '#6B7280', fontSize: 12 }}
                                     />
                                     <YAxis
@@ -272,8 +274,8 @@ const SmartInsights = () => {
                     <CardHeader>
                         <CardTitle className="font-serif tracking-wide uppercase text-sm font-semibold">Sales by Category</CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px] w-full">
+                    <CardContent className="w-full min-w-0">
+                        <div className="h-[300px] w-full min-w-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -314,7 +316,7 @@ const SmartInsights = () => {
                         <CardDescription>Items running low on inventory</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className="divide-y divide-slate-100">
+                        <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto pr-2">
                             {analyticsData.lowStock.map((item) => (
                                 <div key={item.variantId || item.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
                                     <div className="flex items-center gap-3">

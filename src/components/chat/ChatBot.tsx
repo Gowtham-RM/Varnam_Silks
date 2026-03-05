@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2, Bot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import api from '@/lib/api';
 
@@ -19,6 +19,12 @@ export const ChatBot = () => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const location = useLocation();
+
+    // Hide chatbot on admin routes
+    if (location.pathname.startsWith('/admin')) {
+        return null;
+    }
 
     useEffect(() => {
         if (scrollRef.current) {
