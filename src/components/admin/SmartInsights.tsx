@@ -154,13 +154,13 @@ const SmartInsights = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-7">
-                <Card className="md:col-span-4">
+                <Card className="md:col-span-4 overflow-hidden">
                     <CardHeader>
                         <CardTitle className="font-serif tracking-wide uppercase text-sm font-semibold">Monthly Revenue</CardTitle>
                     </CardHeader>
-                    <CardContent className="pl-2 w-full min-w-0">
-                        <ChartContainer config={revenueChartConfig} className="h-[300px] w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%">
+                    <CardContent className="pl-2 w-full min-w-0 overflow-x-auto">
+                        <ChartContainer config={revenueChartConfig} className="h-[300px] w-full min-w-[300px]">
+                            <ResponsiveContainer width="99%" height="100%">
                                 <AreaChart data={analyticsData.monthlyData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                     <XAxis
@@ -194,13 +194,13 @@ const SmartInsights = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="md:col-span-3">
+                <Card className="md:col-span-3 overflow-hidden">
                     <CardHeader>
                         <CardTitle className="font-serif tracking-wide uppercase text-sm font-semibold">Orders Per Month</CardTitle>
                     </CardHeader>
-                    <CardContent className="w-full min-w-0">
-                        <div className="h-[300px] w-full min-w-0">
-                            <ResponsiveContainer width="100%" height="100%">
+                    <CardContent className="w-full min-w-0 overflow-x-auto">
+                        <div className="h-[300px] w-full min-w-[300px]">
+                            <ResponsiveContainer width="99%" height="100%">
                                 <BarChart data={analyticsData.monthlyData}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                     <XAxis
