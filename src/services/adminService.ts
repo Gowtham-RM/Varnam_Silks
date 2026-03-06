@@ -1,14 +1,13 @@
 import api from '@/lib/api';
 import { Product } from '@/types';
 
+// Fetch admin stats and product list
 export const fetchRealAdminStats = async () => {
     try {
-        // Parallel fetch: Stats summary AND full products list
         const [statsResponse, productsResponse] = await Promise.all([
             api.get('/admin/stats'),
-            api.get('/products')
+            api.get('/products'),
         ]);
-
         const statsData = statsResponse.data;
         const productsData = productsResponse.data;
 
@@ -28,14 +27,13 @@ export const fetchRealAdminStats = async () => {
                                     size: sizeObj.size,
                                     color: colorObj.color,
                                     stock: colorObj.stock,
-                                    variantId: `${product._id || product.id}-${sizeObj.size}-${colorObj.color}`
+                                    variantId: `${product._id || product.id}-${sizeObj.size}-${colorObj.color}`,
                                 });
                             }
                         });
                     }
                 });
             } else if (product.stock < 3) {
-                // Fallback for products without variants
                 const productId = product._id || product.id;
                 lowStockSummary.push({
                     id: productId,
@@ -45,31 +43,34 @@ export const fetchRealAdminStats = async () => {
                     size: 'N/A',
                     color: 'N/A',
                     stock: product.stock,
-                    variantId: productId
+                    variantId: productId,
                 });
             }
         });
 
-        // /products endpoint already transforms _id -> id in the backend (server/routes/products.js)
-        const allProducts = productsData;
-
         // Transform recentOrders keys
         const recentOrders = statsData.recentOrders.map((order: any) => ({
             ...order,
-            id: order._id || order.id
+            id: order._id || order.id,
         }));
 
         return {
             totalUsers: statsData.totalUsers,
-            totalOrders: statsData.totalOrders, // Real total orders
-            totalRevenue: statsData.totalRevenue, // Real total revenue
-            lowStockProducts: lowStockSummary, // Now contains variant details
-            products: allProducts as Product[], // Real full product list
-            recentOrders: recentOrders,
-            rawStats: statsData
+            totalOrders: statsData.totalOrders,
+            totalRevenue: statsData.totalRevenue,
+            lowStockProducts: lowStockSummary,
+            products: productsData as Product[],
+            recentOrders,
+            rawStats: statsData,
         };
     } catch (error) {
         console.error('Failed to fetch real admin stats:', error);
         throw error;
     }
+};
+
+// Fetch sales predictions for forecasting
+export const fetchSalesPredictions = async () => {
+    const response = await api.get('/admin/sales-predictions');
+    return response.data;
 };

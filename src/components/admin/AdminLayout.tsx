@@ -15,6 +15,7 @@ const navItems = [
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
+  { href: '/admin/sales-prediction', label: 'Sales Prediction', icon: TrendingUp },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
@@ -129,11 +130,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="hidden lg:block" />
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-sm font-medium">{user.name || 'Admin'}</p>
               <p className="text-xs text-muted-foreground">Administrator</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-sm font-semibold text-white shadow-md">
-              {user.name.charAt(0)}
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-sm font-semibold text-white shadow-md uppercase">
+              {(user.name && user.name.length > 0) ? user.name.charAt(0) : 'A'}
             </div>
           </div>
         </header>

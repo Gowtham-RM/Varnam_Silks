@@ -29,6 +29,7 @@ const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
 const AdminProductForm = lazy(() => import("./pages/admin/AdminProductForm"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminSalesPrediction = lazy(() => import("./pages/admin/AdminSalesPrediction"));
 import TestRecommendations from "./pages/TestRecommendations";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { ChatBot } from "./components/chat/ChatBot";
@@ -70,7 +71,8 @@ const App = () => (
                     <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
                     <Route path="/admin/orders" element={<AdminOrders />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                  </Route>
+                                        <Route path="/admin/sales-prediction" element={<AdminSalesPrediction />} />
+                    </Route>
 
                   {/* 404 */}
                   <Route path="/test-rec" element={<TestRecommendations />} />

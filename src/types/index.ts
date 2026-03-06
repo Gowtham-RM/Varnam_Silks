@@ -111,3 +111,28 @@ export interface AdminStats {
   lowStockProducts: Product[];
   recentOrders: Order[];
 }
+
+// Sales Prediction response types
+export interface PredictionItem {
+  date: string;
+  units: number;
+  productId: string;
+}
+
+export interface SalesPredictionResponse {
+  predictedSales: {
+    next7Days: PredictionItem[];
+    next30Days: PredictionItem[];
+  };
+  topSelling: { productId: string; totalSales: number; name: string; image: string }[];
+  lowDemand: { productId: string; totalSales: number; name: string; image: string }[];
+  recommendations: {
+    productId: string;
+    name: string;
+    image: string;
+    predictedUnitsNextWeek: number;
+    currentStock: number;
+    restockQty: number;
+  }[];
+}
+
