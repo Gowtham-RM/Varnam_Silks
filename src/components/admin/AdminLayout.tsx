@@ -35,7 +35,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
-    navigate('/');
+    window.location.href = '/';
   };
 
   if (!isAuthenticated || user?.role !== 'admin') {
@@ -90,13 +90,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4 bg-background">
-          <Link
-            to="/"
+          <a
+            href="/"
             className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mb-1"
           >
             <Store className="h-5 w-5" />
             View Store
-          </Link>
+          </a>
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"

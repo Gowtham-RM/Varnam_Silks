@@ -280,10 +280,7 @@ const Shop: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20">
-                <p className="text-lg font-medium text-foreground">No products found</p>
-                <p className="mt-2 text-muted-foreground">
-                  Try adjusting your filters or search terms
-                </p>
+                <p className="text-lg font-medium text-foreground">No products found. Try another search.</p>
               </div>
             )}
           </div>

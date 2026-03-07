@@ -119,11 +119,33 @@ export const performSmartSearch = async (queryParams) => {
     // -------------------------------------------------------------
     // SCENARIO 2: Text search is provided
     // -------------------------------------------------------------
-    const searchTerm = q.trim();
+    let searchTerm = q.trim();
+
+    // --- Price Phrase Interception ---
+    // Look for phrases like "under 1000", "below 500", "less than 2000"
+    const maxPriceMatch = searchTerm.match(/(?:under|below|less than)\s+(\d+)/i);
+    if (maxPriceMatch && maxPriceMatch[1]) {
+        const val = parseInt(maxPriceMatch[1], 10);
+        if (!filterQuery.price) filterQuery.price = {};
+        filterQuery.price.$lte = val;
+        // Remove the phrase from the search term so we don't fuzzy search for the word "under"
+        searchTerm = searchTerm.replace(maxPriceMatch[0], '').trim();
+    }
+
+    // Look for phrases like "over 1000", "above 500", "more than 2000"
+    const minPriceMatch = searchTerm.match(/(?:over|above|more than)\s+(\d+)/i);
+    if (minPriceMatch && minPriceMatch[1]) {
+        const val = parseInt(minPriceMatch[1], 10);
+        if (!filterQuery.price) filterQuery.price = {};
+        filterQuery.price.$gte = val;
+        // Remove the phrase from the search term
+        searchTerm = searchTerm.replace(minPriceMatch[0], '').trim();
+    }
 
     // e.g., for "shirt men", we want documents that match BOTH "shirt" and "men"
     // anywhere across the designated fields.
-    let baseTokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [searchTerm.toLowerCase()];
+    let baseTokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [];
+    if (baseTokens.length === 0) baseTokens = [searchTerm.toLowerCase()]; // Fallback if tokenizer stripped everything
 
     // Filter out common english stop-words ("for", "with", "the", etc.)
     const filteredTokens = baseTokens.filter(t => !stopwords.includes(t));
@@ -160,10 +182,27 @@ export const performSmartSearch = async (queryParams) => {
     // e.g., ["(\bshirt|\bshirts)", "(\bmen|\bmens|\bmale)"] -> "(?=.*(\bshirt|\bshirts))(?=.*(\bmen|\bmens|\bmale))"
     const strictRegexPattern = expandedTokenGroups.map(groupMatch => `(?=.*${groupMatch})`).join('');
 
+    // --- Hard-Filter Conflicting Categories ---
+    // If user explicitly searched for "Men", we should never return "Kids" or "Women" even if they match other keywords.
+    const allKnownCategories = ['Men', 'Women', 'Kids'];
+    let categoryFilterMatch = {};
+    if (requestedCategories.length > 0) {
+        // e.g., requestedCategories = ['Men'], so conflictingCategories = ['Women', 'Kids']
+        const conflictingCategories = allKnownCategories.filter(c => !requestedCategories.includes(c));
+        if (conflictingCategories.length > 0) {
+            categoryFilterMatch = {
+                category: { $nin: conflictingCategories } // Must NOT be in the conflicting list
+            };
+        }
+    }
+
     // Execute aggregation
     const pipeline = [
         // 1. First layer: Filter by standard categories/prices if provided
         { $match: filterQuery },
+        
+        // 1.5. Second layer: Hard-exclude conflicting inferred categories (e.g. drop Kids if Men was requested)
+        { $match: categoryFilterMatch },
 
         // 2. Create a giant string of all text fields to search against
         {
@@ -296,7 +335,20 @@ export const performSmartSearch = async (queryParams) => {
             return p;
         });
 
-        return { products, total, page: pageNum, limit: limitNum, suggestion: null };
+        // Generate Autocomplete Text Suggestions dynamically
+        // e.g., user types "men" -> Suggest "Mens Shirts", "Mens T-Shirts"
+        let textSuggestions = [];
+        if (products.length > 0 && queryParams.autocomplete) {
+            const suggestionSet = new Set();
+            products.slice(0, 10).forEach(p => {
+                 if (p.category && p.subCategory) {
+                     suggestionSet.add(`${p.category} ${p.subCategory}`);
+                 }
+            });
+            textSuggestions = Array.from(suggestionSet).slice(0, 5);
+        }
+
+        return { products, total, page: pageNum, limit: limitNum, suggestion: null, textSuggestions };
     }
 
     // -------------------------------------------------------------
@@ -416,7 +468,18 @@ export const performSmartSearch = async (queryParams) => {
             return p;
         });
 
-        return { products, total, page: pageNum, limit: limitNum, suggestion: null };
+        let textSuggestions = [];
+        if (products.length > 0 && queryParams.autocomplete) {
+            const suggestionSet = new Set();
+            products.slice(0, 10).forEach(p => {
+                 if (p.category && p.subCategory) {
+                     suggestionSet.add(`${p.category} ${p.subCategory}`);
+                 }
+            });
+            textSuggestions = Array.from(suggestionSet).slice(0, 5);
+        }
+
+        return { products, total, page: pageNum, limit: limitNum, suggestion: null, textSuggestions };
     }
 
     // -------------------------------------------------------------
@@ -431,15 +494,27 @@ export const performSmartSearch = async (queryParams) => {
     let highestJaro = 0.5; // Threshold for Jaro-Winkler similarity (0 to 1)
 
     allProducts.forEach(p => {
-        const words = tokenizer.tokenize((p.name + " " + p.category + " " + p.subCategory).toLowerCase());
+        const namePart = p.name || '';
+        const catPart = p.category || '';
+        const subCatPart = p.subCategory || '';
+        const combined = `${namePart} ${catPart} ${subCatPart}`.toLowerCase().trim();
+        if (!combined) return;
+
+        const words = tokenizer.tokenize(combined) || [];
 
         // Check each word in our DB against the user's typo tokens
-        tokens.forEach(searchToken => {
+        baseTokens.forEach(searchToken => {
+            if (!searchToken) return;
             words.forEach(dbWord => {
-                const similarity = natural.JaroWinklerDistance(searchToken, dbWord);
-                if (similarity > highestJaro && similarity < 1.0) { // <1.0 means it wasn't an exact match
-                    highestJaro = similarity;
-                    bestMatch = dbWord;
+                if (!dbWord) return;
+                try {
+                    const similarity = natural.JaroWinklerDistance(searchToken, dbWord);
+                    if (similarity > highestJaro && similarity < 1.0) { // <1.0 means it wasn't an exact match
+                        highestJaro = similarity;
+                        bestMatch = dbWord;
+                    }
+                } catch (e) {
+                    // Ignore jaro errors on weird symbols
                 }
             });
         });
@@ -450,5 +525,5 @@ export const performSmartSearch = async (queryParams) => {
     }
 
     // Return empty array, but provide the "did you mean" suggestion
-    return { products: [], total: 0, page: pageNum, limit: limitNum, suggestion };
+    return { products: [], total: 0, page: pageNum, limit: limitNum, suggestion, textSuggestions: [] };
 };

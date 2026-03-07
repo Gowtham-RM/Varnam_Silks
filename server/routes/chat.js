@@ -89,6 +89,14 @@ If a user asks for something not in the list, apologize and say it's currently u
         res.json({ message: response.text });
     } catch (error) {
         console.error('Chat error:', error);
+        
+        // Handle Gemini API Rate Limits gracefully
+        if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
+             return res.json({ 
+                 message: "I'm experiencing very high traffic right now and need to take a quick breather! 😅 Please try asking me again in a few minutes." 
+             });
+        }
+
         res.status(500).json({ message: 'Failed to process chat request' });
     }
 });

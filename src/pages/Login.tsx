@@ -50,7 +50,7 @@ const Login: React.FC = () => {
     if (success) {
       toast.success('Welcome back!');
       if (user?.role === 'admin' || user?.isAdmin) {
-        navigate('/admin', { replace: true });
+        window.location.href = '/admin';
       } else {
         navigate(from, { replace: true });
       }

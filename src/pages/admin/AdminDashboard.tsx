@@ -159,7 +159,7 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div className="flex gap-3">
             <Button variant="outline" size="sm" className="hidden sm:flex" asChild>
-              <Link to="/">View Store <ArrowUpRight className="ml-2 h-4 w-4" /></Link>
+              <a href="/">View Store <ArrowUpRight className="ml-2 h-4 w-4" /></a>
             </Button>
           </div>
         </div>

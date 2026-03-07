@@ -9,6 +9,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { NAV_ITEMS } from '@/data/navigation';
+import api from '@/lib/api';
 
 import {
   Accordion,
@@ -21,16 +22,40 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [textSuggestions, setTextSuggestions] = useState<string[]>([]);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+
   const { isAuthenticated, user, logout } = useAuth();
   const { getCartCount } = useCart();
   const { wishlistCount } = useWishlist();
   const navigate = useNavigate();
   const cartCount = getCartCount();
 
+  React.useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!searchQuery.trim()) {
+        setSuggestions([]);
+        setTextSuggestions([]);
+        return;
+      }
+      try {
+        const res = await api.get(`/products/search?q=${encodeURIComponent(searchQuery)}&autocomplete=true`);
+        setSuggestions(res.data.products?.slice(0, 5) || []);
+        setTextSuggestions(res.data.textSuggestions || []);
+      } catch (e) {
+        console.error("Autocomplete error", e);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
-    navigate('/');
+    window.location.href = '/';
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -46,13 +71,6 @@ const Header: React.FC = () => {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Top bar */}
-      <div className="hidden md:block bg-charcoal text-primary-foreground">
-        <div className="container flex h-8 items-center justify-center text-xs tracking-wide">
-          <p>Free shipping on orders over ₹2,999 | Use code FIRST10 for 10% off</p>
-        </div>
-      </div>
-
       {/* Main header */}
       <div className="container flex h-16 items-center justify-between md:h-20">
         {/* Mobile menu button */}
@@ -120,26 +138,84 @@ const Header: React.FC = () => {
             </div>
           ))}
           {user?.role === 'admin' && (
-            <Link
-              to="/admin"
+            <a
+              href="/admin"
               className="text-sm font-medium text-primary transition-colors hover:text-primary/80"
             >
               Admin
-            </Link>
+            </a>
           )}
         </nav>
 
         {/* Search Bar - Desktop */}
-        <div className="hidden lg:flex flex-1 max-w-sm mx-8">
+        <div className="hidden lg:flex flex-1 max-w-sm mx-8 relative">
           <form onSubmit={handleSearch} className="relative w-full">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search for products..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setIsSuggestionsOpen(true); }}
+              onFocus={() => { if (searchQuery.trim()) setIsSuggestionsOpen(true); }}
+              onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
               className="w-full pl-9 pr-4 bg-muted/40 focus-visible:bg-background rounded-full border-muted-foreground/20"
             />
+
+            {/* Autocomplete Dropdown */}
+            {isSuggestionsOpen && (textSuggestions.length > 0 || suggestions.length > 0) && (
+              <div className="absolute top-12 left-0 right-0 bg-background border border-border rounded-lg shadow-lg overflow-hidden z-50">
+                <ul className="py-2">
+                  {/* Keyword Suggestions */}
+                  {textSuggestions.map((term, i) => (
+                    <li key={`text-${i}`}>
+                      <button
+                        type="button"
+                        className="flex items-center px-4 py-2 hover:bg-muted transition-colors w-full text-left"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSearchQuery(term);
+                          setIsSuggestionsOpen(false);
+                          navigate(`/shop?search=${encodeURIComponent(term)}`);
+                        }}
+                      >
+                        <Search className="h-4 w-4 mr-3 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">{term}</span>
+                      </button>
+                    </li>
+                  ))}
+
+                  {textSuggestions.length > 0 && suggestions.length > 0 && (
+                    <div className="h-px bg-border my-2 mx-4" />
+                  )}
+
+                  {/* Product Suggestions */}
+                  {suggestions.map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        to={`/product/${p.id}`}
+                        className="flex items-center px-4 py-2 hover:bg-muted transition-colors"
+                        onClick={() => { setIsSuggestionsOpen(false); setSearchQuery(''); }}
+                      >
+                        <img src={p.image} alt={p.name} className="w-10 h-10 object-cover rounded mr-3" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-foreground line-clamp-1">{p.name}</span>
+                          <span className="text-xs text-muted-foreground">₹{p.price}</span>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                  <li className="px-4 py-2 border-t border-border mt-1">
+                    <button
+                      type="submit"
+                      className="text-sm text-primary font-medium hover:underline w-full text-left"
+                      onClick={() => setIsSuggestionsOpen(false)}
+                    >
+                      View all results
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
           </form>
         </div>
 
@@ -171,11 +247,19 @@ const Header: React.FC = () => {
           {/* Account */}
           {isAuthenticated ? (
             <>
-              <Link to={user?.isAdmin ? '/admin' : '/profile'}>
-                <Button variant="ghost" size="icon">
-                  <User className="h-5 w-5" />
-                </Button>
-              </Link>
+              {user?.role === 'admin' ? (
+                <a href="/admin">
+                  <Button variant="ghost" size="icon">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </a>
+              ) : (
+                <Link to="/profile">
+                  <Button variant="ghost" size="icon">
+                    <User className="h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
                 <LogOut className="h-5 w-5" />
               </Button>
@@ -209,20 +293,75 @@ const Header: React.FC = () => {
           isSearchOpen ? 'visible opacity-100' : 'invisible opacity-0'
         )}
       >
-        <div className="container py-4">
+        <div className="container py-4 relative">
           <form onSubmit={handleSearch} className="relative mx-auto max-w-xl">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Search for products..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => { setSearchQuery(e.target.value); setIsSuggestionsOpen(true); }}
+              onFocus={() => { if (searchQuery.trim()) setIsSuggestionsOpen(true); }}
+              onBlur={() => setTimeout(() => setIsSuggestionsOpen(false), 200)}
               className="pl-11 pr-20"
               autoFocus
             />
             <Button type="submit" size="sm" className="absolute right-2 top-1/2 -translate-y-1/2">
               Search
             </Button>
+
+            {/* Autocomplete Dropdown (Mobile) */}
+            {isSuggestionsOpen && (textSuggestions.length > 0 || suggestions.length > 0) && (
+              <div className="absolute top-14 left-4 right-4 bg-background border border-border rounded-lg shadow-lg overflow-hidden z-50">
+                <ul className="py-2">
+                  {/* Keyword Suggestions */}
+                  {textSuggestions.map((term, i) => (
+                    <li key={`text-m-${i}`}>
+                      <button
+                        type="button"
+                        className="flex items-center px-4 py-3 hover:bg-muted transition-colors border-b border-border/50 w-full text-left"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setSearchQuery(term);
+                          setIsSuggestionsOpen(false);
+                          setIsSearchOpen(false);
+                          navigate(`/shop?search=${encodeURIComponent(term)}`);
+                        }}
+                      >
+                        <Search className="h-4 w-4 mr-3 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">{term}</span>
+                      </button>
+                    </li>
+                  ))}
+
+                  {/* Product Suggestions */}
+                  {suggestions.map((p) => (
+                    <li key={p.id}>
+                      <Link
+                        to={`/product/${p.id}`}
+                        className="flex items-center px-4 py-3 hover:bg-muted transition-colors border-b border-border/50 last:border-0"
+                        onClick={() => { setIsSuggestionsOpen(false); setIsSearchOpen(false); setSearchQuery(''); }}
+                      >
+                        <img src={p.image} alt={p.name} className="w-10 h-10 object-cover rounded mr-3" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-foreground line-clamp-1">{p.name}</span>
+                          <span className="text-xs text-muted-foreground">₹{p.price}</span>
+                        </div>
+                      </Link>
+                    </li>
+                  ))}
+                  <li className="px-4 py-3 bg-muted/30">
+                    <button
+                      type="submit"
+                      className="text-sm text-primary font-medium w-full text-center"
+                      onClick={() => { setIsSuggestionsOpen(false); setIsSearchOpen(false); }}
+                    >
+                      See all {searchQuery} results
+                    </button>
+                  </li>
+                </ul>
+              </div>
+            )}
           </form>
         </div>
       </div>
@@ -292,13 +431,13 @@ const Header: React.FC = () => {
           </Accordion>
 
           {user?.role === 'admin' && (
-            <Link
-              to="/admin"
+            <a
+              href="/admin"
               className="border-b py-4 text-base font-medium transition-colors hover:text-primary text-primary"
               onClick={() => setIsMenuOpen(false)}
             >
               Admin Dashboard
-            </Link>
+            </a>
           )}
 
           <div className="mt-auto border-t border-border pt-4">
