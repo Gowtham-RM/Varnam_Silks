@@ -69,7 +69,7 @@ export const ChatBot = () => {
 
     return (
         <>
-            <div className="fixed bottom-6 right-6 z-50">
+            <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50">
                 {!isOpen && (
                     <Button
                         onClick={() => setIsOpen(true)}
@@ -81,7 +81,7 @@ export const ChatBot = () => {
                 )}
 
                 {isOpen && (
-                    <div className="bg-background border rounded-2xl shadow-2xl w-[350px] sm:w-[400px] h-[550px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in-20 duration-300">
+                    <div className="bg-background border rounded-2xl shadow-2xl w-[calc(100vw-2rem)] sm:w-[400px] h-[70vh] sm:h-[550px] max-h-[800px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in-20 duration-300">
                         {/* Header */}
                         <div className="bg-primary p-4 flex justify-between items-center text-primary-foreground">
                             <div className="flex items-center gap-3">

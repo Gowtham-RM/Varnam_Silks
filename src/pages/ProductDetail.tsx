@@ -10,11 +10,19 @@ import { toast } from 'sonner';
 import { Product } from '@/types';
 import api from '@/lib/api';
 import { useWishlist } from '@/context/WishlistContext';
+import { useAuth } from '@/context/AuthContext';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { user, isAuthenticated } = useAuth();
+
+  const [canRate, setCanRate] = useState(false);
+  const [ratingReason, setRatingReason] = useState('');
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [isSubmittingRating, setIsSubmittingRating] = useState(false);
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,6 +49,21 @@ const ProductDetail: React.FC = () => {
           console.warn('Also bought data is not an array:', bought);
           setAlsoBought([]);
         }
+
+        // 4. Check rating eligibility
+        if (isAuthenticated && user?.id) {
+          try {
+            const { data: rateData } = await api.get(`/products/${id}/can-rate`, {
+              headers: { 'x-user-id': user.id }
+            });
+            setCanRate(rateData.canRate);
+            if (!rateData.canRate) {
+              setRatingReason(rateData.reason);
+            }
+          } catch (e) {
+            console.error('Failed to fetch rate eligibility');
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch product data', error);
         toast.error('Failed to load product details');
@@ -53,7 +76,34 @@ const ProductDetail: React.FC = () => {
       fetchProductAndRelated();
       window.scrollTo(0, 0);
     }
-  }, [id]);
+  }, [id, isAuthenticated, user]);
+
+  const submitRating = async (ratingValue: number) => {
+    if (!isAuthenticated || !user?.id) {
+      toast.error('Please login to rate');
+      return;
+    }
+    if (!canRate) {
+      toast.error(ratingReason || 'You cannot rate this product');
+      return;
+    }
+
+    try {
+      setIsSubmittingRating(true);
+      const { data: updatedProduct } = await api.post(`/products/${product!.id}/rate`, { rating: ratingValue }, {
+        headers: { 'x-user-id': user.id }
+      });
+      setProduct(updatedProduct);
+      setCanRate(false);
+      setRatingReason('Already rated by this user');
+      setUserRating(ratingValue);
+      toast.success('Thank you for your rating!');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to submit rating');
+    } finally {
+      setIsSubmittingRating(false);
+    }
+  };
 
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -186,7 +236,7 @@ const ProductDetail: React.FC = () => {
             </h1>
 
             {/* Rating */}
-            {product.rating && (
+            {(product.rating !== undefined && product.rating >= 0) && (
               <div className="mt-4 flex items-center gap-2">
                 <div className="flex gap-0.5">
                   {[...Array(5)].map((_, i) => (
@@ -194,13 +244,13 @@ const ProductDetail: React.FC = () => {
                       key={i}
                       className={cn(
                         'h-4 w-4',
-                        i < Math.floor(product.rating!) ? 'fill-gold text-gold' : 'text-muted'
+                        i < Math.round(product.rating!) ? 'fill-gold text-gold' : 'text-muted'
                       )}
                     />
                   ))}
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {product.rating} ({product.reviews} reviews)
+                  {product.rating > 0 ? `${product.rating} (${product.reviews} reviews)` : 'No reviews yet'}
                 </span>
               </div>
             )}
@@ -430,6 +480,50 @@ const ProductDetail: React.FC = () => {
               <div className="text-center">
                 <Shield className="mx-auto h-6 w-6 text-muted-foreground" />
                 <p className="mt-2 text-xs text-muted-foreground">Secure Payment</p>
+              </div>
+            </div>
+
+            {/* Rate this Product */}
+            <div className="mt-12 border-t border-border pt-8">
+              <h3 className="font-display text-xl font-semibold">Rate this Product</h3>
+              <div className="mt-4">
+                {!isAuthenticated ? (
+                  <p className="text-sm text-muted-foreground">
+                    <Link to="/login" className="text-primary hover:underline">Sign in</Link> to rate this product.
+                  </p>
+                ) : canRate ? (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm text-muted-foreground">How would you rate this product?</p>
+                    <div className="flex gap-1" onMouseLeave={() => setHoverRating(0)}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          disabled={isSubmittingRating}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onClick={() => submitRating(star)}
+                          className="transition-transform hover:scale-110 disabled:opacity-50 disabled:hover:scale-100"
+                        >
+                          <Star
+                            className={cn(
+                              'h-8 w-8 transition-colors',
+                              (hoverRating >= star || (!hoverRating && userRating >= star))
+                                ? 'fill-gold text-gold'
+                                : 'text-foreground hover:text-gold'
+                            )}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {ratingReason === 'Already rated by this user'
+                      ? 'You have already rated this product. Thank you!'
+                      : ratingReason === 'Product not purchased'
+                        ? 'You can only rate products you have purchased.'
+                        : 'You cannot rate this product at this time.'}
+                  </p>
+                )}
               </div>
             </div>
           </div>

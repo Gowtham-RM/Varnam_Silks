@@ -74,7 +74,7 @@ const Checkout: React.FC = () => {
     const orderData = {
       user: user?.id,
       items: items.map(item => ({
-        product: item.product.id,
+        product: item.productId || item.product?.id || (item.product as any)?._id,
         quantity: item.quantity,
         price: item.product.price,
         size: item.size,
@@ -102,9 +102,10 @@ const Checkout: React.FC = () => {
       clearCart();
       toast.success('Payment successful!');
       navigate('/payment-success', { state: { orderId: order._id || order.id, total } });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Checkout error:', error);
-      toast.error('Payment processing failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Payment processing failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -112,6 +113,11 @@ const Checkout: React.FC = () => {
 
   if (items.length === 0) {
     navigate('/cart');
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    navigate('/login', { state: { from: '/checkout' } });
     return null;
   }
 

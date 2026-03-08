@@ -121,6 +121,99 @@ router.get('/:id/also-bought', async (req, res) => {
   }
 });
 
+// Check if user can rate a product
+router.get('/:id/can-rate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.headers['x-user-id']; // Temporary simple auth like in orders.js
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User ID required' });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Check if the user has already rated
+    if (product.ratedBy && product.ratedBy.includes(userId)) {
+      return res.json({ canRate: false, reason: 'Already rated by this user' });
+    }
+
+    // Check if the user has ordered the product
+    const order = await Order.findOne({
+      user: userId,
+      'items.product': id,
+      status: { $in: ['delivered', 'shipped', 'processing', 'pending'] } // Or strict to 'delivered' but allow processing for testing
+    });
+
+    if (!order) {
+      return res.json({ canRate: false, reason: 'Product not purchased' });
+    }
+
+    res.json({ canRate: true });
+
+  } catch (error) {
+    console.error('Check rate eligibility error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Rate a product
+router.post('/:id/rate', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating } = req.body;
+    const userId = req.headers['x-user-id'];
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User ID required' });
+    }
+
+    if (rating === undefined || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Valid rating between 1 and 5 is required' });
+    }
+
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+
+    // Prevent duplicate ratings
+    if (product.ratedBy && product.ratedBy.includes(userId)) {
+      return res.status(400).json({ message: 'You have already rated this product' });
+    }
+
+    // Verify ordering
+    const order = await Order.findOne({
+      user: userId,
+      'items.product': id,
+      status: { $ne: 'cancelled' } // Any active/completed order
+    });
+
+    if (!order) {
+      return res.status(403).json({ message: 'You can only rate products you have purchased' });
+    }
+
+    // Calculate new average rating
+    const currentRating = product.rating || 0;
+    const currentReviews = product.reviews || 0;
+
+    product.rating = Number((((currentRating * currentReviews) + rating) / (currentReviews + 1)).toFixed(1));
+    product.reviews = currentReviews + 1;
+    product.ratedBy.push(userId);
+
+    await product.save();
+
+    res.json(transformProduct(product));
+
+  } catch (error) {
+    console.error('Rate product error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Get single product
 router.get('/:id', async (req, res) => {
   try {
