@@ -42,6 +42,7 @@ router.get('/search', async (req, res) => {
 });
 
 // Get product recommendations (Weighted Scoring)
+// IMPORTANT: This route must come BEFORE the /:id route
 router.get('/:id/recommendations', async (req, res) => {
   try {
     const { id } = req.params;
@@ -67,8 +68,8 @@ router.get('/:id/recommendations', async (req, res) => {
   }
 });
 
-// Get single product
 // Get "Users Also Bought" recommendations (Collaborative Filtering)
+// IMPORTANT: This route must come BEFORE the /:id route
 router.get('/:id/also-bought', async (req, res) => {
   try {
     const { id } = req.params;
@@ -122,6 +123,7 @@ router.get('/:id/also-bought', async (req, res) => {
 });
 
 // Check if user can rate a product
+// IMPORTANT: This route must come BEFORE the /:id route
 router.get('/:id/can-rate', async (req, res) => {
   try {
     const { id } = req.params;
@@ -217,7 +219,14 @@ router.post('/:id/rate', async (req, res) => {
 // Get single product
 router.get('/:id', async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const { id } = req.params;
+    
+    // Validate ObjectId to prevent cast errors
+    if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+      return res.status(400).json({ message: 'Invalid product ID' });
+    }
+    
+    const product = await Product.findById(id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
     res.json(transformProduct(product));
   } catch (error) {

@@ -3,17 +3,47 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import heroImage from '@/assets/home.png';
+import api from '@/lib/api';
 
 const HeroSection: React.FC = () => {
+  const [productImages, setProductImages] = React.useState<string[]>([
+    "https://placehold.co/100x100/f8f9fa/a1a1aa?text=+",
+    "https://placehold.co/100x100/f8f9fa/a1a1aa?text=+"
+  ]);
+
+  React.useEffect(() => {
+    const fetchRecentImages = async () => {
+        try {
+            const resp = await api.get('/products');
+            if (resp.data && resp.data.length >= 2) {
+                // Get the first two products' images
+                const validImages = resp.data
+                    .filter((p: any) => p.images && p.images.length > 0)
+                    .map((p: any) => p.images[0])
+                    .slice(0, 2);
+                
+                if (validImages.length === 2) {
+                    setProductImages(validImages);
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching images for hero", e);
+        }
+    };
+    fetchRecentImages();
+    const intervalId = setInterval(fetchRecentImages, 2000);
+    return () => clearInterval(intervalId);
+  }, []);
+
   return (
-    <section className="relative min-h-[65vh] bg-gradient-hero overflow-hidden">
+    <section className="relative bg-gradient-hero overflow-hidden" style={{ minHeight: 'calc(100vh - 5rem)', maxHeight: 'calc(100vh - 5rem)' }}>
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute -right-48 -top-48 h-96 w-96 rounded-full bg-rose/20 blur-3xl" />
         <div className="absolute -left-48 bottom-0 h-96 w-96 rounded-full bg-gold/20 blur-3xl" />
       </div>
 
-      <div className="container relative flex min-h-[65vh] items-center py-10">
+      <div className="container relative flex items-center py-8 md:py-10" style={{ minHeight: 'calc(100vh - 5rem)', maxHeight: 'calc(100vh - 5rem)' }}>
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center w-full">
           {/* Text content */}
           <div className="max-w-xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
@@ -65,24 +95,24 @@ const HeroSection: React.FC = () => {
 
           {/* Image */}
           <div
-            className="relative animate-slide-up"
-            style={{ animationDelay: '0.3s' }}
+            className="relative animate-slide-up h-full flex items-center justify-center"
+            style={{ animationDelay: '0.3s', maxHeight: 'calc(100vh - 10rem)' }}
           >
-            <div className="relative aspect-square overflow-hidden rounded-2xl shadow-elegant">
+            <div className="relative w-full overflow-hidden rounded-2xl shadow-elegant bg-black" style={{ maxHeight: 'calc(100vh - 12rem)' }}>
               <img
                 src={heroImage}
                 alt="Couple in Traditional Ethnic Wear"
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain object-center rounded-2xl"
               />
               {/* Floating card */}
               <div className="absolute bottom-6 left-6 right-6 rounded-xl bg-background/95 p-4 backdrop-blur shadow-elegant">
                 <div className="flex items-center gap-4">
                   <div className="flex -space-x-4">
                     <div className="h-12 w-12 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
-                      <img src="https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=100" className="h-full w-full object-cover" />
+                      <img src={productImages[0]} className="h-full w-full object-cover" onError={(e) => e.currentTarget.src = "https://placehold.co/100x100/f8f9fa/a1a1aa?text=+"} />
                     </div>
                     <div className="h-12 w-12 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
-                      <img src="https://images.unsplash.com/photo-1622290291314-1f256e353287?w=100" className="h-full w-full object-cover" />
+                      <img src={productImages[1]} className="h-full w-full object-cover" onError={(e) => e.currentTarget.src = "https://placehold.co/100x100/f8f9fa/a1a1aa?text=+"} />
                     </div>
                     <div className="h-12 w-12 rounded-full border-2 border-white bg-gray-100 flex items-center justify-center text-xs font-medium">
                       +500

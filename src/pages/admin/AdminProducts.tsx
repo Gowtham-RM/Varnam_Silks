@@ -44,6 +44,11 @@ const AdminProducts: React.FC = () => {
     fetchProducts();
   }, []);
 
+  const totalProducts = productList.length;
+  const totalStockValue = productList.reduce((acc, product) => {
+    return acc + (product.price * product.stock);
+  }, 0);
+
   const filteredProducts = productList.filter(
     (product) =>
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,6 +97,17 @@ const AdminProducts: React.FC = () => {
                 Add Product
               </Button>
             </Link>
+          </div>
+
+          <div className="flex gap-4 sm:gap-8 mt-4 text-sm">
+            <div className="flex flex-col">
+              <span className="text-muted-foreground">Total Products</span>
+              <span className="font-semibold text-lg">{totalProducts}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-muted-foreground">Total Stock Value</span>
+              <span className="font-semibold text-lg text-primary">₹{totalStockValue.toLocaleString()}</span>
+            </div>
           </div>
 
           {/* Search */}

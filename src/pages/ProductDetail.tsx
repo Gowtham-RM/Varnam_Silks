@@ -31,17 +31,30 @@ const ProductDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchProductAndRelated = async () => {
+      setLoading(true);
+      
       try {
-        setLoading(true);
-        // 1. Fetch current product
+        // 1. Fetch current product (critical - must succeed)
         const { data: currentProduct } = await api.get(`/products/${id}`);
         setProduct(currentProduct);
+      } catch (error: any) {
+        console.error('Failed to fetch product:', error);
+        toast.error(error.response?.data?.message || 'Failed to load product details');
+        setLoading(false);
+        return; // Stop here if main product fetch fails
+      }
 
-        // 2. Fetch ML-powered recommendations
+      // 2. Fetch ML-powered recommendations (non-critical)
+      try {
         const { data: related } = await api.get(`/products/${id}/recommendations`);
         setRelatedProducts(related);
+      } catch (e) {
+        console.error('Failed to fetch recommendations:', e);
+        setRelatedProducts([]);
+      }
 
-        // 3. Fetch Collaborative Filtering results
+      // 3. Fetch Collaborative Filtering results (non-critical)
+      try {
         const { data: bought } = await api.get(`/products/${id}/also-bought`);
         if (Array.isArray(bought)) {
           setAlsoBought(bought);
@@ -49,27 +62,27 @@ const ProductDetail: React.FC = () => {
           console.warn('Also bought data is not an array:', bought);
           setAlsoBought([]);
         }
-
-        // 4. Check rating eligibility
-        if (isAuthenticated && user?.id) {
-          try {
-            const { data: rateData } = await api.get(`/products/${id}/can-rate`, {
-              headers: { 'x-user-id': user.id }
-            });
-            setCanRate(rateData.canRate);
-            if (!rateData.canRate) {
-              setRatingReason(rateData.reason);
-            }
-          } catch (e) {
-            console.error('Failed to fetch rate eligibility');
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch product data', error);
-        toast.error('Failed to load product details');
-      } finally {
-        setLoading(false);
+      } catch (e) {
+        console.error('Failed to fetch also-bought:', e);
+        setAlsoBought([]);
       }
+
+      // 4. Check rating eligibility (non-critical)
+      if (isAuthenticated && user?.id) {
+        try {
+          const { data: rateData } = await api.get(`/products/${id}/can-rate`, {
+            headers: { 'x-user-id': user.id }
+          });
+          setCanRate(rateData.canRate);
+          if (!rateData.canRate) {
+            setRatingReason(rateData.reason);
+          }
+        } catch (e) {
+          console.error('Failed to fetch rate eligibility:', e);
+        }
+      }
+
+      setLoading(false);
     };
 
     if (id) {
@@ -158,31 +171,31 @@ const ProductDetail: React.FC = () => {
     <Layout>
       {/* Breadcrumb */}
       <div className="border-b border-border bg-cream">
-        <div className="container py-4">
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link to="/" className="hover:text-foreground">Home</Link>
-            <span>/</span>
-            <Link to="/shop" className="hover:text-foreground">Shop</Link>
-            <span>/</span>
-            <Link to={`/shop?category=${product.category}`} className="hover:text-foreground capitalize">
+        <div className="container py-3 md:py-4">
+          <nav className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground overflow-x-auto hide-scrollbar">
+            <Link to="/" className="hover:text-foreground whitespace-nowrap">Home</Link>
+            <span className="text-muted-foreground/50">/</span>
+            <Link to="/shop" className="hover:text-foreground whitespace-nowrap">Shop</Link>
+            <span className="text-muted-foreground/50">/</span>
+            <Link to={`/shop?category=${product.category}`} className="hover:text-foreground capitalize whitespace-nowrap">
               {product.category}
             </Link>
-            <span>/</span>
-            <span className="text-foreground">{product.name}</span>
+            <span className="text-muted-foreground/50">/</span>
+            <span className="text-foreground truncate max-w-[150px] md:max-w-none">{product.name}</span>
           </nav>
         </div>
       </div>
 
-      <div className="container py-12">
-        <div className="grid gap-12 lg:grid-cols-2">
+      <div className="container py-6 md:py-8 lg:py-12">
+        <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-2">
           {/* Images */}
-          <div className="space-y-4">
-            <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted">
+          <div className="space-y-3 md:space-y-4">
+            <div className="relative overflow-hidden rounded-xl bg-muted sticky top-20" style={{ maxHeight: 'min(70vh, 600px)', aspectRatio: '3/4' }}>
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}
                 referrerPolicy="no-referrer"
-                className="h-full w-full object-cover"
+                className="h-full w-full object-contain"
               />
               {product.images.length > 1 && (
                 <>
@@ -209,17 +222,17 @@ const ProductDetail: React.FC = () => {
 
             {/* Thumbnails */}
             {product.images.length > 1 && (
-              <div className="flex gap-4">
+              <div className="flex gap-2 md:gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-thin">
                 {product.images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
                     className={cn(
-                      'aspect-[3/4] w-20 overflow-hidden rounded-lg border-2 transition-all',
-                      selectedImage === index ? 'border-foreground' : 'border-transparent opacity-60 hover:opacity-100'
+                      'aspect-[3/4] w-16 md:w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all snap-start',
+                      selectedImage === index ? 'border-foreground ring-2 ring-foreground/20' : 'border-transparent opacity-60 hover:opacity-100'
                     )}
                   >
-                    <img src={image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-cover" />
+                    <img src={image} alt="" referrerPolicy="no-referrer" className="h-full w-full object-contain" />
                   </button>
                 ))}
               </div>
@@ -228,10 +241,10 @@ const ProductDetail: React.FC = () => {
 
           {/* Product info */}
           <div className="lg:py-4">
-            <p className="text-sm uppercase tracking-wider text-muted-foreground">
+            <p className="text-xs md:text-sm uppercase tracking-wider text-muted-foreground">
               {product.category}
             </p>
-            <h1 className="mt-2 font-display text-3xl font-semibold md:text-4xl">
+            <h1 className="mt-2 font-display text-2xl font-semibold leading-tight md:text-3xl lg:text-4xl">
               {product.name}
             </h1>
 
@@ -256,28 +269,28 @@ const ProductDetail: React.FC = () => {
             )}
 
             {/* Price */}
-            <div className="mt-6 flex items-baseline gap-3">
-              <p className="text-3xl font-semibold text-foreground">
+            <div className="mt-4 md:mt-6 flex flex-wrap items-baseline gap-2 md:gap-3">
+              <p className="text-2xl md:text-3xl font-semibold text-foreground">
                 ₹{product.price.toLocaleString()}
               </p>
               {product.originalPrice && (
-                <p className="text-xl text-muted-foreground line-through">
+                <p className="text-lg md:text-xl text-muted-foreground line-through">
                   ₹{product.originalPrice.toLocaleString()}
                 </p>
               )}
               {discount > 0 && (
-                <span className="rounded-full bg-primary/10 px-2 py-1 text-sm font-medium text-primary">
+                <span className="rounded-full bg-primary/10 px-2 py-1 text-xs md:text-sm font-medium text-primary">
                   Save {discount}%
                 </span>
               )}
             </div>
 
-            <p className="mt-6 text-muted-foreground leading-relaxed">
+            <p className="mt-4 md:mt-6 text-sm md:text-base text-muted-foreground leading-relaxed">
               {product.description}
             </p>
 
             {/* Product Specifications */}
-            <div className="mt-6 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div className="mt-4 md:mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-xs md:text-sm">
               {product.fabric && (
                 <div>
                   <span className="font-medium text-foreground">Fabric:</span> <span className="text-muted-foreground">{product.fabric}</span>
@@ -300,13 +313,13 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Color selection */}
-            <div className="mt-8">
+            <div className="mt-6 md:mt-8">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-medium">
+                <p className="text-sm md:text-base font-medium">
                   Color: <span className="font-normal text-muted-foreground">{selectedColor || 'Select a color'}</span>
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 md:gap-3">
                 {product.colors.map((color) => {
                   let isAvailable = true;
                   let stockForColor = 0;
@@ -327,7 +340,7 @@ const ProductDetail: React.FC = () => {
                       onClick={() => isAvailable && setSelectedColor(color)}
                       disabled={!isAvailable}
                       className={cn(
-                        'flex h-10 items-center gap-2 rounded-lg border px-4 text-sm transition-all',
+                        'flex h-9 md:h-10 items-center gap-2 rounded-lg border px-3 md:px-4 text-xs md:text-sm transition-all',
                         selectedColor === color
                           ? 'border-foreground bg-foreground text-background'
                           : 'border-border hover:border-foreground',
@@ -358,14 +371,14 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Size selection */}
-            <div className="mt-6">
+            <div className="mt-5 md:mt-6">
               <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-medium">
+                <p className="text-sm md:text-base font-medium">
                   Size: <span className="font-normal text-muted-foreground">{selectedSize || 'Select a size'}</span>
                 </p>
-                <button className="text-sm text-primary hover:underline">Size Guide</button>
+                <button className="text-xs md:text-sm text-primary hover:underline">Size Guide</button>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 md:gap-3">
                 {product.sizes.map((sizeObj) => {
                   const totalStock = sizeObj.colors.reduce((acc, c) => acc + c.stock, 0);
 
@@ -382,7 +395,7 @@ const ProductDetail: React.FC = () => {
                       onClick={() => isAvailable && setSelectedSize(sizeObj.size)}
                       disabled={!isAvailable}
                       className={cn(
-                        'flex h-12 min-w-12 items-center justify-center rounded-lg border px-4 text-sm font-medium transition-all',
+                        'flex h-10 md:h-12 min-w-10 md:min-w-12 items-center justify-center rounded-lg border px-3 md:px-4 text-xs md:text-sm font-medium transition-all',
                         selectedSize === sizeObj.size
                           ? 'border-foreground bg-foreground text-background'
                           : 'border-border hover:border-foreground',
@@ -397,17 +410,17 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Quantity */}
-            <div className="mt-6">
-              <p className="mb-3 text-sm font-medium">Quantity</p>
-              <div className="flex items-center gap-3">
+            <div className="mt-5 md:mt-6">
+              <p className="mb-3 text-sm md:text-base font-medium">Quantity</p>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="flex items-center rounded-lg border border-border">
                   <button
                     onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    className="flex h-12 w-12 items-center justify-center transition-colors hover:bg-muted"
+                    className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center transition-colors hover:bg-muted"
                   >
                     <Minus className="h-4 w-4" />
                   </button>
-                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <span className="w-10 md:w-12 text-center font-medium text-sm md:text-base">{quantity}</span>
                   <button
                     onClick={() => {
                       let maxStock = product.stock;
@@ -421,12 +434,12 @@ const ProductDetail: React.FC = () => {
                       }
                       setQuantity((q) => Math.min(maxStock, q + 1));
                     }}
-                    className="flex h-12 w-12 items-center justify-center transition-colors hover:bg-muted"
+                    className="flex h-10 w-10 md:h-12 md:w-12 items-center justify-center transition-colors hover:bg-muted"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs md:text-sm text-muted-foreground">
                   {selectedSize && selectedColor
                     ? `${product.sizes.find(s => s.size === selectedSize)?.colors.find(c => c.color === selectedColor)?.stock || 0} items available`
                     : selectedSize
@@ -437,23 +450,24 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Actions */}
-            <div className="mt-8 flex gap-4">
+            <div className="mt-6 md:mt-8 flex gap-3 md:gap-4">
               <Button
                 onClick={handleAddToCart}
                 variant="hero"
-                size="xl"
-                className="flex-1"
+                size="lg"
+                className="flex-1 h-11 md:h-12 text-sm md:text-base"
                 disabled={product.stock === 0}
               >
-                <ShoppingBag className="mr-2 h-5 w-5" />
+                <ShoppingBag className="mr-2 h-4 w-4 md:h-5 md:w-5" />
                 Add to Cart
               </Button>
               <Button
                 onClick={() => product && toggleWishlist(product)}
                 variant="outline"
-                size="xl"
+                size="lg"
+                className="h-11 md:h-12 w-11 md:w-12 p-0"
               >
-                <Heart className={cn('h-5 w-5', isWishlisted && 'fill-primary text-primary')} />
+                <Heart className={cn('h-4 w-4 md:h-5 md:w-5', isWishlisted && 'fill-primary text-primary')} />
               </Button>
             </div>
 
@@ -461,25 +475,25 @@ const ProductDetail: React.FC = () => {
               onClick={handleBuyNow}
               variant="outline"
               size="lg"
-              className="mt-4 w-full"
+              className="mt-3 md:mt-4 w-full h-11 md:h-12 text-sm md:text-base"
               disabled={product.stock === 0}
             >
               Buy Now
             </Button>
 
             {/* Features */}
-            <div className="mt-8 grid grid-cols-3 gap-4 border-t border-border pt-8">
+            <div className="mt-6 md:mt-8 grid grid-cols-3 gap-3 md:gap-4 border-t border-border pt-6 md:pt-8">
               <div className="text-center">
-                <Truck className="mx-auto h-6 w-6 text-muted-foreground" />
-                <p className="mt-2 text-xs text-muted-foreground">Free Shipping</p>
+                <Truck className="mx-auto h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
+                <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-muted-foreground">Free Shipping</p>
               </div>
               <div className="text-center">
-                <RefreshCw className="mx-auto h-6 w-6 text-muted-foreground" />
-                <p className="mt-2 text-xs text-muted-foreground">Easy Returns</p>
+                <RefreshCw className="mx-auto h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
+                <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-muted-foreground">Easy Returns</p>
               </div>
               <div className="text-center">
-                <Shield className="mx-auto h-6 w-6 text-muted-foreground" />
-                <p className="mt-2 text-xs text-muted-foreground">Secure Payment</p>
+                <Shield className="mx-auto h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
+                <p className="mt-1 md:mt-2 text-[10px] md:text-xs text-muted-foreground">Secure Payment</p>
               </div>
             </div>
 
@@ -531,11 +545,11 @@ const ProductDetail: React.FC = () => {
 
         {/* Related products */}
         {relatedProducts.length > 0 && (
-          <div className="mt-20">
-            <h2 className="font-display text-2xl font-semibold">You May Also Like</h2>
-            <div className="mt-8 flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
+          <div className="mt-12 md:mt-16 lg:mt-20">
+            <h2 className="font-display text-xl md:text-2xl font-semibold">You May Also Like</h2>
+            <div className="mt-6 md:mt-8 flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
               {relatedProducts.map((product) => (
-                <div key={product.id} className="min-w-[160px] max-w-[160px] sm:min-w-[240px] sm:max-w-[240px] snap-start">
+                <div key={product.id} className="min-w-[160px] max-w-[160px] sm:min-w-[200px] sm:max-w-[200px] md:min-w-[240px] md:max-w-[240px] snap-start flex-shrink-0">
                   <ProductCard product={product} />
                 </div>
               ))}
@@ -546,11 +560,11 @@ const ProductDetail: React.FC = () => {
 
         {/* Also Bought Section */}
         {alsoBought.length > 0 && (
-          <div className="mt-20">
-            <h2 className="font-display text-2xl font-semibold">Users Also Bought</h2>
-            <div className="mt-8 flex gap-4 overflow-x-auto pb-4 snap-x scrollbar-hide">
+          <div className="mt-12 md:mt-16 lg:mt-20">
+            <h2 className="font-display text-xl md:text-2xl font-semibold">Users Also Bought</h2>
+            <div className="mt-6 md:mt-8 flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin">
               {alsoBought.map((product) => (
-                <div key={product.id} className="min-w-[160px] max-w-[160px] sm:min-w-[240px] sm:max-w-[240px] snap-start">
+                <div key={product.id} className="min-w-[160px] max-w-[160px] sm:min-w-[200px] sm:max-w-[200px] md:min-w-[240px] md:max-w-[240px] snap-start flex-shrink-0">
                   <ProductCard product={product} />
                 </div>
               ))}

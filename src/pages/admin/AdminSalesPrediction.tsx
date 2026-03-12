@@ -24,6 +24,7 @@ const AdminSalesPrediction: React.FC = () => {
   const { data, isLoading, error } = useQuery<SalesPredictionResponse>({
     queryKey: ['salesPredictions'],
     queryFn: fetchSalesPredictions,
+    refetchInterval: 2000,
   });
 
   if (isLoading) {
@@ -193,7 +194,7 @@ const AdminSalesPrediction: React.FC = () => {
                    <CardDescription className="text-rose-700/70">Actionable insights to prevent stockouts based on next week's predicted volume.</CardDescription>
                 </div>
                  <Button variant="outline" size="sm" asChild className="hidden sm:flex border-rose-200 text-rose-700 hover:bg-rose-100">
-                    <Link to="/admin/products">Manage Inventory</Link>
+                    <Link to="/admin/analytics#stock-alerts">Manage Inventory</Link>
                  </Button>
              </div>
            </CardHeader>

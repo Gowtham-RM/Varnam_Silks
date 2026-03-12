@@ -81,8 +81,8 @@ const AdminDashboard: React.FC = () => {
           lowStockProducts: useRealData ? realStats.lowStockProducts : [], // No mock fallback for granular variants yet
 
           // Use Real Data for Totals if available
-          totalOrders: useRealData && realStats.totalOrders ? realStats.totalOrders : simData.totalOrders,
-          totalRevenue: useRealData && realStats.totalRevenue ? realStats.totalRevenue : simData.totalRevenue,
+          totalOrders: useRealData ? realStats.totalOrders : simData.totalOrders,
+          totalRevenue: useRealData ? realStats.totalRevenue : simData.totalRevenue,
 
           recentOrders: useRealData && realStats.recentOrders && realStats.recentOrders.length > 0 ? realStats.recentOrders : simData.recentOrders,
         });
@@ -94,8 +94,9 @@ const AdminDashboard: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadDashboardData();
+    const intervalId = setInterval(loadDashboardData, 2000);
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) {

@@ -75,6 +75,14 @@ const AdminOrders: React.FC = () => {
     fetchOrders();
   }, []);
 
+  const totalOrdersCount = orders.length;
+  const totalRevenue = orders.reduce((acc, order) => {
+    if (order.status !== 'cancelled') {
+        return acc + (order.totalAmount || 0);
+    }
+    return acc;
+  }, 0);
+
   const filteredOrders = orders.filter(
     (order) =>
       order._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -97,11 +105,25 @@ const AdminOrders: React.FC = () => {
     <AdminLayout>
       <div className="space-y-6">
         <div className="sticky top-[64px] z-20 -mx-4 -mt-4 bg-background/95 px-4 py-4 backdrop-blur supports-[backdrop-filter]:bg-background/60 lg:-mx-8 lg:px-8">
-          <div>
-            <h1 className="font-display text-3xl font-semibold">Orders</h1>
-            <p className="mt-1 text-muted-foreground">
-              Manage and track all orders
-            </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h1 className="font-display text-3xl font-semibold">Orders</h1>
+              <p className="mt-1 text-muted-foreground">
+                Manage and track all orders
+              </p>
+            </div>
+            
+            <div className="flex gap-6 sm:gap-8 bg-card border rounded-lg p-3 shadow-sm min-w-[250px]">
+               <div className="flex flex-col">
+                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Orders</span>
+                 <span className="font-semibold text-xl">{totalOrdersCount}</span>
+               </div>
+               <div className="w-px bg-border"></div>
+               <div className="flex flex-col">
+                 <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Total Revenue</span>
+                 <span className="font-semibold text-xl text-green-600">₹{totalRevenue.toLocaleString()}</span>
+               </div>
+            </div>
           </div>
 
           {/* Search */}

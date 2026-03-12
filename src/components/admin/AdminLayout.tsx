@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, ShoppingBag, LogOut, Store, Menu, X, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, Package, ShoppingBag, LogOut, Store, Menu, X, TrendingUp, LineChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -15,7 +15,7 @@ const navItems = [
   { href: '/admin/products', label: 'Products', icon: Package },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/analytics', label: 'Analytics', icon: TrendingUp },
-  { href: '/admin/sales-prediction', label: 'Sales Prediction', icon: TrendingUp },
+  { href: '/admin/sales-prediction', label: 'Sales Prediction', icon: LineChart },
 ];
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
@@ -35,7 +35,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
-    window.location.href = '/';
+    navigate('/');
   };
 
   if (!isAuthenticated || user?.role !== 'admin') {
@@ -90,13 +90,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </nav>
 
         <div className="absolute bottom-0 left-0 right-0 border-t border-border p-4 bg-background">
-          <a
-            href="/"
-            className="flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mb-1"
+          <button
+            onClick={() => {
+              setIsSidebarOpen(false);
+              navigate('/');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mb-1"
           >
             <Store className="h-5 w-5" />
             View Store
-          </a>
+          </button>
           <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600"
@@ -130,11 +134,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <div className="hidden lg:block" />
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium">{user.name || 'Admin'}</p>
+              <p className="text-sm font-medium">{user.name}</p>
               <p className="text-xs text-muted-foreground">Administrator</p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-sm font-semibold text-white shadow-md uppercase">
-              {(user.name && user.name.length > 0) ? user.name.charAt(0) : 'A'}
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-600 text-sm font-semibold text-white shadow-md">
+              {user.name.charAt(0)}
             </div>
           </div>
         </header>

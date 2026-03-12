@@ -29,7 +29,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
     e.preventDefault();
     e.stopPropagation();
     // Add with default size and color
-    addToCart(product, 1, product.sizes[0], product.colors[0]);
+    const defaultSize = product.sizes && product.sizes.length > 0 ? product.sizes[0].size : 'N/A';
+    const defaultColor = product.colors && product.colors.length > 0 ? product.colors[0] : 'N/A';
+    addToCart(product, 1, defaultSize, defaultColor);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -48,7 +50,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
       <div className="relative aspect-[3/4] overflow-hidden rounded-lg bg-muted">
         {/* Image */}
         <img
-          src={product.images[isHovered && product.images[1] ? 1 : 0]}
+          src={product.images && product.images.length > 0 ? product.images[isHovered && product.images[1] ? 1 : 0] : 'https://placehold.co/400x500/f8f9fa/a1a1aa?text=Image+Unavailable'}
           alt={product.name}
           referrerPolicy="no-referrer"
           className={cn(
@@ -57,6 +59,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
             imageLoaded ? 'opacity-100' : 'opacity-0'
           )}
           onLoad={() => setImageLoaded(true)}
+          onError={(e) => {
+            e.currentTarget.src = 'https://placehold.co/400x500/f8f9fa/a1a1aa?text=Image+Unavailable';
+          }}
         />
 
         {/* Loading skeleton */}
@@ -147,7 +152,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
         )}
         {/* Color swatches */}
         <div className="flex gap-1 pt-1">
-          {product.colors.slice(0, 4).map((color) => (
+          {product.colors?.slice(0, 4).map((color) => (
             <span
               key={color}
               className="h-4 w-4 rounded-full border border-border"
@@ -166,7 +171,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
               title={color}
             />
           ))}
-          {product.colors.length > 4 && (
+          {(product.colors && product.colors.length > 4) && (
             <span className="text-xs text-muted-foreground">+{product.colors.length - 4}</span>
           )}
         </div>

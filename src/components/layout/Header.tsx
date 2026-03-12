@@ -25,6 +25,7 @@ const Header: React.FC = () => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [textSuggestions, setTextSuggestions] = useState<string[]>([]);
   const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
 
   const { isAuthenticated, user, logout } = useAuth();
   const { getCartCount } = useCart();
@@ -99,17 +100,23 @@ const Header: React.FC = () => {
             Shop
           </Link>
           {NAV_ITEMS.map((item) => (
-            <div key={item.label} className="group flex h-full items-center">
+            <div 
+              key={item.label} 
+              className="group flex h-full items-center"
+              onMouseEnter={() => setActiveMenu(item.label)}
+              onMouseLeave={() => setActiveMenu(null)}
+            >
               <Link
                 to={item.href}
                 className="flex items-center text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => setActiveMenu(null)}
               >
                 {item.label}
               </Link>
 
               {/* Mega Menu Dropdown */}
-              {item.columns && (
-                <div className="absolute left-0 top-full hidden w-full border-t border-border bg-background shadow-lg group-hover:block animate-in fade-in zoom-in-95 duration-200">
+              {item.columns && activeMenu === item.label && (
+                <div className="absolute left-0 top-full w-full border-t border-border bg-background shadow-lg animate-in fade-in zoom-in-95 duration-200">
                   <div className="container py-8">
                     <div className="grid grid-cols-4 gap-8">
                       {item.columns.map((column) => (
@@ -123,6 +130,7 @@ const Header: React.FC = () => {
                                 <Link
                                   to={subItem.href}
                                   className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                                  onClick={() => setActiveMenu(null)}
                                 >
                                   {subItem.label}
                                 </Link>

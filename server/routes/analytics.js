@@ -96,9 +96,12 @@ router.get('/sales-predictions', async (req, res) => {
         const recommendations = [];
         const predictedSales = { next7Days: [], next30Days: [] };
 
-        // Compute total sales per product for ranking
+        // Compute total sales per product for ranking (exclude deleted products)
         const totalSalesArr = [];
         for (const pid in salesMap) {
+            // Skip products that no longer exist in the database
+            if (!productMap[pid]) continue;
+            
             const total = Object.values(salesMap[pid]).reduce((a, b) => a + b, 0);
             totalSalesArr.push({ pid, total });
         }
@@ -109,8 +112,8 @@ router.get('/sales-predictions', async (req, res) => {
             return { 
                 productId: t.pid, 
                 totalSales: t.total,
-                name: p ? p.name : 'Unknown Product',
-                image: p && p.images && p.images.length > 0 ? p.images[0] : ''
+                name: p.name,
+                image: p.images && p.images.length > 0 ? p.images[0] : ''
             };
         }));
         
@@ -119,8 +122,8 @@ router.get('/sales-predictions', async (req, res) => {
             return { 
                 productId: t.pid, 
                 totalSales: t.total,
-                name: p ? p.name : 'Unknown Product',
-                image: p && p.images && p.images.length > 0 ? p.images[0] : ''
+                name: p.name,
+                image: p.images && p.images.length > 0 ? p.images[0] : ''
             };
         }));
 

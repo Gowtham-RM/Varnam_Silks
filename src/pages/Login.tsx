@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
@@ -25,6 +25,16 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const from = (location.state as { from?: string })?.from || '/';
+
+  // Show success message if redirected from password reset
+  useEffect(() => {
+    const message = (location.state as { message?: string })?.message;
+    if (message) {
+      toast.success(message);
+      // Clear the message from state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,17 +140,6 @@ const Login: React.FC = () => {
                 )}
               </Button>
             </form>
-
-            {/* Demo credentials */}
-            <div className="mt-6 rounded-lg bg-muted p-4">
-              <p className="text-xs font-medium text-muted-foreground">Demo Credentials:</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                User: priya@example.com / password123
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Admin: admin@varnamsilks.com / admin123
-              </p>
-            </div>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               Don't have an account?{' '}

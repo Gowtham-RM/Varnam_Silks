@@ -28,6 +28,9 @@ const CategorySection: React.FC = () => {
                 src={category.image}
                 alt={category.name}
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                onError={(e) => {
+                  e.currentTarget.src = `https://placehold.co/400x500/f8f9fa/a1a1aa?text=${encodeURIComponent(category.name)}`;
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-charcoal/80 via-charcoal/20 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4">

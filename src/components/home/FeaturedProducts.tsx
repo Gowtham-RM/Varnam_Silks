@@ -11,7 +11,8 @@ const FeaturedProducts: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchProducts = async (isPolling = false) => {
+      if (!isPolling) setLoading(true);
       try {
         const { data } = await api.get('/products');
         const featured = data.filter((p: Product) => p.featured).slice(0, 4);
@@ -19,10 +20,12 @@ const FeaturedProducts: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch products', error);
       } finally {
-        setLoading(false);
+        if (!isPolling) setLoading(false);
       }
     };
     fetchProducts();
+    const intervalId = setInterval(() => fetchProducts(true), 2000);
+    return () => clearInterval(intervalId);
   }, []);
 
   return (

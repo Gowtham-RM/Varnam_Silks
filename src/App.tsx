@@ -19,6 +19,7 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
 const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Orders = lazy(() => import("./pages/Orders"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -47,7 +48,14 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <ScrollToTop />
-              <Suspense fallback={null}>
+              <Suspense fallback={
+                <div className="flex h-screen items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto"></div>
+                    <p className="mt-4 text-muted-foreground">Loading...</p>
+                  </div>
+                </div>
+              }>
                 <Routes>
                   {/* User routes */}
                   <Route path="/" element={<Index />} />
@@ -60,6 +68,7 @@ const App = () => (
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
 
@@ -71,8 +80,8 @@ const App = () => (
                     <Route path="/admin/products/:id/edit" element={<AdminProductForm />} />
                     <Route path="/admin/orders" element={<AdminOrders />} />
                     <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                                        <Route path="/admin/sales-prediction" element={<AdminSalesPrediction />} />
-                    </Route>
+                    <Route path="/admin/sales-prediction" element={<AdminSalesPrediction />} />
+                  </Route>
 
                   {/* 404 */}
                   <Route path="/test-rec" element={<TestRecommendations />} />

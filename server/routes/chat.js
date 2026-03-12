@@ -34,7 +34,10 @@ router.post('/', async (req, res) => {
         const products = searchResult.products;
 
         const productContext = products.map(p =>
-            `- [ID: ${p.id || p._id}] ${p.name} (${p.category || 'N/A'}, ${p.type || 'N/A'}): ₹${p.price}. Sizes: ${(p.sizes || []).filter(s => typeof s !== 'object' ? true : s.size).map(s => typeof s === 'object' ? s.size : s).join(', ')}. Colors: ${(p.colors || []).join(', ')}. In stock: ${p.inStock}`
+            `- [ID: ${p.id || p._id}] **${p.name}** (${p.category || 'N/A'}): ${p.price > 0 ? `₹${p.price}` : 'Free'}${p.originalPrice ? ` (Discounted from ₹${p.originalPrice})` : ''}. ` +
+            `Available Sizes: ${(p.sizes || []).filter(s => typeof s !== 'object' ? true : s.size).map(s => typeof s === 'object' ? s.size : s).join(', ') || 'N/A'}. ` +
+            `Available Colors: ${(p.colors || []).join(', ') || 'N/A'}. ` +
+            `Stock Level: ${p.stock > 0 ? 'In Stock' : 'Out of Stock'}`
         ).join('\n');
 
         const systemPrompt = `You are a friendly and helpful AI shopping assistant for an online dress shop named Varnam Silks.
@@ -63,14 +66,13 @@ ${productContext}
 
 Please use the provided product list to make accurate recommendations. 
 
-CRITICAL INSTRUCTION REGARDING LINKS: 
-You absolutely CAN and MUST provide clickable markdown links to products when mentioning them or when the user asks for a link. 
-The format is strictly: \`[Product Name](/product/PRODUCT_ID)\`.
-Example: "Here is the link to the [White Shirt](/product/1234567890abcdef)"
-
-DO NOT say you cannot provide a link. You are fully capable of generating this markdown format.
-
-If a user asks for something not in the list, apologize and say it's currently unavailable. DO NOT make up products. Format your response in Markdown where appropriate, but keep it conversational.`;
+CRITICAL INSTRUCTION REGARDING LINKS AND RESULTS: 
+1. You absolutely CAN and MUST provide clickable markdown links to products when mentioning them.
+2. The format is strictly: \`[Product Name](/product/PRODUCT_ID)\`.
+Example: "Here is the link to the [White Silk Saree](/product/65a3b21c...)"
+3. DO NOT say you cannot provide a link. You are fully capable of generating this markdown format.
+4. Format your recommendations clearly. Use bullet points for multiple items. Use **bold** for product names and prices.
+5. If a user asks for something not in the list, apologize and say it's currently unavailable. DO NOT make up products. Format your response in Markdown where appropriate, but keep it conversational.`;
 
         const formattedContents = messages.map(msg => ({
             role: msg.role === 'assistant' ? 'model' : 'user',

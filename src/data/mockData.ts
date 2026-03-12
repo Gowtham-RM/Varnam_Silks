@@ -1,9 +1,13 @@
 import { Product, Category, Order, User } from '@/types';
 
+import categoryMen from '@/assets/category-men.jpg';
+import categoryWomen from '@/assets/category-women.jpg';
+import categoryKids from '@/assets/category-kids.jpg';
+
 export const categories: Category[] = [
-  { id: '1', name: 'Men', slug: 'men', image: 'https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=500' },
-  { id: '2', name: 'Women', slug: 'women', image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=500' },
-  { id: '3', name: 'Kids', slug: 'kids', image: 'https://images.unsplash.com/photo-1622290291314-1f256e353287?w=500' },
+  { id: '1', name: 'Men', slug: 'men', image: categoryMen },
+  { id: '2', name: 'Women', slug: 'women', image: categoryWomen },
+  { id: '3', name: 'Kids', slug: 'kids', image: categoryKids },
 ];
 
 export const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];

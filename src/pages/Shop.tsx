@@ -17,8 +17,10 @@ const Shop: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      setLoading(true);
+    let ignore = false;
+    
+    const fetchProducts = async (isPolling = false) => {
+      if (!isPolling) setLoading(true);
       try {
         // Construct query parameters for the smart search API
         const params = new URLSearchParams();
@@ -38,12 +40,14 @@ const Shop: React.FC = () => {
         console.log('Fetching:', endpoint);
         const { data } = await api.get(endpoint);
 
-        // The search API returns { products: [...] }, while the base API returns an array [...]
-        setProducts(data.products || data);
+        if (!ignore) {
+          // The search API returns { products: [...] }, while the base API returns an array [...]
+          setProducts(data.products || data);
+        }
       } catch (error) {
-        console.error('Failed to fetch products', error);
+        if (!ignore) console.error('Failed to fetch products', error);
       } finally {
-        setLoading(false);
+        if (!ignore && !isPolling) setLoading(false);
       }
     };
 
@@ -52,7 +56,15 @@ const Shop: React.FC = () => {
       fetchProducts();
     }, 100);
 
-    return () => clearTimeout(timeoutId);
+    const intervalId = setInterval(() => {
+      fetchProducts(true);
+    }, 2000);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, [searchParams]);
 
   const maxPrice = useMemo(() => {
@@ -81,14 +93,18 @@ const Shop: React.FC = () => {
   useEffect(() => {
     const category = searchParams.get('category') || '';
     const sortBy = (searchParams.get('sortBy') as FilterState['sortBy']) || 'newest';
-    // Reset attributes when category changes
-    setFilters((prev) => ({
-      ...prev,
-      category,
-      subCategory: searchParams.get('sub') || '', // Reset or sync subcategory
-      sortBy,
-      attributes: {} // Clear attributes on category switch to avoid invalid filters
-    }));
+    const subCategory = searchParams.get('sub') || '';
+    
+    setFilters((prev) => {
+      const categoryChanged = prev.category !== category || prev.subCategory !== subCategory;
+      return {
+        ...prev,
+        category,
+        subCategory,
+        sortBy,
+        attributes: categoryChanged ? {} : prev.attributes
+      };
+    });
   }, [searchParams]);
 
   // Filter and sort products (for price, size, color, attributes which are still maintained in local state)
@@ -154,7 +170,7 @@ const Shop: React.FC = () => {
     }
 
     return result;
-  }, [filters, searchParams]);
+  }, [filters, searchParams, products]);
 
   const handleSortChange = (value: string) => {
     setFilters((prev) => ({ ...prev, sortBy: value as FilterState['sortBy'] }));

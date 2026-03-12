@@ -7,26 +7,6 @@ import { Button } from '@/components/ui/button';
 const Footer: React.FC = () => {
   return (
     <footer className="border-t border-border bg-cream">
-      {/* Newsletter section */}
-      <div className="border-b border-border bg-charcoal py-16 text-primary-foreground">
-        <div className="container text-center">
-          <h3 className="font-display text-2xl font-semibold md:text-3xl">Join Our Newsletter</h3>
-          <p className="mt-2 text-primary-foreground/80">
-            Subscribe to get special offers, free giveaways, and exclusive deals.
-          </p>
-          <form className="mx-auto mt-6 flex max-w-md flex-col gap-3 sm:flex-row">
-            <Input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 border-primary-foreground/20 bg-transparent text-primary-foreground placeholder:text-primary-foreground/50"
-            />
-            <Button variant="hero" className="bg-primary-foreground text-charcoal hover:bg-primary-foreground/90">
-              Subscribe
-            </Button>
-          </form>
-        </div>
-      </div>
-
       {/* Main footer */}
       <div className="container py-16">
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">

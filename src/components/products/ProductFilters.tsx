@@ -198,7 +198,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
     filters.priceRange[0] > 0 ||
     filters.priceRange[1] < maxPrice;
 
-  const FilterContent = () => (
+  const filterContentJSX = (
     <div className="space-y-6">
       <Accordion type="multiple" className="w-full">
         {/* Categories */}
@@ -208,13 +208,13 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
           </AccordionTrigger>
           <AccordionContent>
             <Select
-              value={filters.category}
+              value={filters.category || 'all'}
               onValueChange={(value) => handleCategoryChange(value === 'all' ? '' : value)}
             >
               <SelectTrigger className="w-full mt-2">
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="max-h-[300px] overflow-y-auto">
                 <SelectItem value="all">All Products</SelectItem>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.slug}>
@@ -240,7 +240,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
                 <SelectTrigger className="w-full mt-2">
                   <SelectValue placeholder={`All ${filters.category}`} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[300px] overflow-y-auto">
                   <SelectItem value="all">All {filters.category}</SelectItem>
                   {subCategories.map((sub) => (
                     <SelectItem key={sub.value} value={sub.value}>
@@ -476,7 +476,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
               </button>
             )}
           </div>
-          <FilterContent />
+          {filterContentJSX}
         </div>
       </aside>
 
@@ -498,7 +498,7 @@ const ProductFilters: React.FC<ProductFiltersProps> = ({
             <SheetTitle className="font-display">Filters</SheetTitle>
           </SheetHeader>
           <div className="mt-6">
-            <FilterContent />
+            {filterContentJSX}
           </div>
         </SheetContent>
       </Sheet>

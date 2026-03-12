@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { getSimulatedData } from '@/utils/simulatedData';
 import { fetchRealAdminStats } from '@/services/adminService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { products as mockProducts, mockUsers } from "@/data/mockData";
-import { generateHistoricalOrders } from "@/utils/mockDataGenerator";
+import api from '@/lib/api';
 import {
     getRevenueAnalytics,
     predictRevenue,
@@ -43,55 +44,74 @@ const SmartInsights = () => {
         monthlyData: MonthlyAnalytics[];
         totalRevenue: number;
         predictedRevenue: number;
+        activeProductsCount: number;
+        activeCategoriesCount: number;
     } | null>(null);
 
     useEffect(() => {
         const loadAnalytics = async () => {
-            // Get shared history (Simulated)
-            const history = getSimulatedData().historicalOrders;
-
-            // Try to get real products
-            let currentProducts = mockProducts;
-            let lowStockFromBackend: any[] = [];
             try {
-                const stats = await fetchRealAdminStats();
-                if (stats.products && stats.products.length > 0) {
-                    currentProducts = stats.products;
-                }
-                // If real data is available, use the pre-calculated low stock alerts from adminService
-                if (stats.lowStockProducts) {
-                    lowStockFromBackend = stats.lowStockProducts;
-                }
-            } catch (e) {
-                console.warn("Failed to load real products for analytics", e);
-            }
+                // Fetch real orders from backend
+                const ordersResponse = await api.get('/orders');
+                const backendOrders = ordersResponse.data || [];
+                
+                // Ensure orders are in the shape expected by analytics utils
+                const history = backendOrders.map((order: any) => ({
+                    ...order,
+                    id: order._id || order.id,
+                    date: order.createdAt // map createdAt to date for compatibility with some utils
+                }));
 
-            const revenue = getRevenueAnalytics(history, 30);
-            const forecast = predictRevenue(revenue, 7);
-            const trending = getTrendingProducts(history, currentProducts);
+                // Try to get real products
+                let currentProducts = mockProducts;
+                let lowStockFromBackend: any[] = [];
+                try {
+                    const stats = await fetchRealAdminStats();
+                    if (stats.products && stats.products.length > 0) {
+                        currentProducts = stats.products;
+                    }
+                    if (stats.lowStockProducts) {
+                        lowStockFromBackend = stats.lowStockProducts;
+                    }
+                } catch (e) {
+                    console.warn("Failed to load real products for analytics", e);
+                }
+
+                const revenue = getRevenueAnalytics(history, 30);
+                const forecast = predictRevenue(revenue, 7);
+                const trending = getTrendingProducts(history, currentProducts);
 
             // Use backend low stock logic if available, otherwise fall back to frontend calculation (which doesn't handle variants as well yet)
             const lowStock = lowStockFromBackend.length > 0 ? lowStockFromBackend : getLowStockProducts(currentProducts, 3);
             const categoryData = getCategoryDemand(history);
             const monthlyData = getMonthlyAnalytics(history);
 
-            // Calc totals
-            const totalRev = revenue.reduce((sum, d) => sum + d.revenue, 0);
-            const predRev = forecast.reduce((sum, d) => sum + d.revenue, 0);
+                // Calc totals
+                const totalRev = revenue.reduce((sum, d) => sum + d.revenue, 0);
+                const predRev = forecast.reduce((sum, d) => sum + d.revenue, 0);
+                const uniqueCategories = new Set(currentProducts.map(p => p.category));
 
-            setAnalyticsData({
-                revenueData: revenue,
-                forecastData: forecast,
-                trending,
-                lowStock,
-                categoryData,
-                monthlyData,
-                totalRevenue: totalRev,
-                predictedRevenue: predRev
-            });
+                setAnalyticsData({
+                    revenueData: revenue,
+                    forecastData: forecast,
+                    trending,
+                    lowStock,
+                    categoryData,
+                    monthlyData,
+                    totalRevenue: totalRev,
+                    predictedRevenue: predRev,
+                    activeProductsCount: currentProducts.length,
+                    activeCategoriesCount: uniqueCategories.size
+                });
+            } catch (error) {
+                console.error("Failed to load analytics:", error);
+                // Fallback state if api fails
+            }
         };
 
         loadAnalytics();
+        const intervalId = setInterval(loadAnalytics, 2000);
+        return () => clearInterval(intervalId);
     }, []);
 
     if (!analyticsData) {
@@ -111,46 +131,54 @@ const SmartInsights = () => {
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">30-Day Revenue</CardTitle>
-                        <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">₹{analyticsData.totalRevenue.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Predicted Revenue (7d)</CardTitle>
-                        <Activity className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold text-primary">₹{analyticsData.predictedRevenue.toLocaleString()}</div>
-                        <p className="text-xs text-muted-foreground">AI Estimate based on recent trends</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{analyticsData.lowStock.length}</div>
-                        <p className="text-xs text-muted-foreground">Products need restocking</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Products</CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{analyticsData.categoryData.reduce((acc, curr) => acc + curr.value, 0)}</div>
-                        <p className="text-xs text-muted-foreground">Across {analyticsData.categoryData.length} categories</p>
-                    </CardContent>
-                </Card>
+                <Link to="/admin/orders" className="transition-transform hover:scale-[1.02]">
+                    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">30-Day Revenue</CardTitle>
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">₹{analyticsData.totalRevenue.toLocaleString()}</div>
+                            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link to="/admin/analytics" className="transition-transform hover:scale-[1.02]">
+                    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer border-primary/20 bg-primary/5">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Predicted Revenue (7d)</CardTitle>
+                            <Activity className="h-4 w-4 text-primary" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary">₹{analyticsData.predictedRevenue.toLocaleString()}</div>
+                            <p className="text-xs text-muted-foreground">AI Estimate based on recent trends</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link to="/admin/products" className="transition-transform hover:scale-[1.02]">
+                    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{analyticsData.lowStock.length}</div>
+                            <p className="text-xs text-muted-foreground">Products need restocking</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link to="/admin/products" className="transition-transform hover:scale-[1.02]">
+                    <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Active Products</CardTitle>
+                            <Package className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{analyticsData.activeProductsCount}</div>
+                            <p className="text-xs text-muted-foreground">Across {analyticsData.activeCategoriesCount} categories</p>
+                        </CardContent>
+                    </Card>
+                </Link>
             </div>
 
             <div className="grid gap-4 md:grid-cols-7">
@@ -310,7 +338,7 @@ const SmartInsights = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-1">
-                <Card>
+                <Card id="stock-alerts">
                     <CardHeader>
                         <CardTitle>Stock Alerts</CardTitle>
                         <CardDescription>Items running low on inventory</CardDescription>

@@ -48,11 +48,15 @@ const CATEGORY_MAP = {
  * Builds the MongoDB query object from request parameters
  */
 const buildFilterQuery = (queryParams) => {
-    const { category, minPrice, maxPrice, size, color, fabric } = queryParams;
+    const { category, subCategory, minPrice, maxPrice, size, color, fabric } = queryParams;
     let query = {};
 
     if (category) {
         query.category = { $regex: new RegExp(`^${category}$`, 'i') };
+    }
+
+    if (subCategory) {
+        query.subCategory = { $regex: new RegExp(`^${subCategory}$`, 'i') };
     }
 
     if (fabric) {
