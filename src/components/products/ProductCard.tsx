@@ -19,6 +19,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
 
+  // Defensive check: Ensure product has a valid id
+  if (!product || !product.id) {
+    console.warn('ProductCard: Invalid product or missing id', product);
+    return null;
+  }
+
   const isWishlisted = isInWishlist(product.id);
 
   const discount = product.originalPrice

@@ -5,7 +5,6 @@ import CategorySection from '@/components/home/CategorySection';
 import FeaturedCollections from '@/components/home/FeaturedCollections';
 import FeaturedProducts from '@/components/home/FeaturedProducts';
 import PromoSection from '@/components/home/PromoSection';
-import TestimonialsSection from '@/components/home/TestimonialsSection';
 
 const Index: React.FC = () => {
   return (
@@ -15,7 +14,6 @@ const Index: React.FC = () => {
       <FeaturedCollections />
       <FeaturedProducts />
       <PromoSection />
-      <TestimonialsSection />
     </Layout>
   );
 };

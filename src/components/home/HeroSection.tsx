@@ -36,29 +36,29 @@ const HeroSection: React.FC = () => {
   }, []);
 
   return (
-    <section className="relative bg-gradient-hero overflow-hidden" style={{ minHeight: 'calc(100vh - 5rem)', maxHeight: 'calc(100vh - 5rem)' }}>
+    <section className="relative bg-gradient-hero overflow-hidden min-h-[500px] md:min-h-[600px] lg:min-h-[calc(100vh-5rem)]">
       {/* Background pattern */}
       <div className="absolute inset-0 opacity-30">
         <div className="absolute -right-48 -top-48 h-96 w-96 rounded-full bg-rose/20 blur-3xl" />
         <div className="absolute -left-48 bottom-0 h-96 w-96 rounded-full bg-gold/20 blur-3xl" />
       </div>
 
-      <div className="container relative flex items-center py-8 md:py-10" style={{ minHeight: 'calc(100vh - 5rem)', maxHeight: 'calc(100vh - 5rem)' }}>
+      <div className="container relative flex items-center py-8 md:py-10 lg:py-12">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 items-center w-full">
           {/* Text content */}
-          <div className="max-w-xl animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="max-w-xl animate-slide-up z-10" style={{ animationDelay: '0.1s' }}>
             <p className="mb-3 text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">
               New Collection 2026
             </p>
-            <h1 className="font-display text-4xl font-semibold leading-[1.1] tracking-tight md:text-5xl lg:text-6xl">
+            <h1 className="font-display text-3xl font-semibold leading-[1.1] tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
               Discover Your
               <span className="block text-primary">Signature Style</span>
             </h1>
-            <p className="mt-4 text-base text-muted-foreground">
+            <p className="mt-4 text-sm sm:text-base text-muted-foreground">
               Explore our wide range of premium ethnic wear.
               From Kanjivaram Sarees to Classic Menswear and Kids' favorites.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-2 sm:gap-3">
               <Link to="/shop?category=women">
                 <Button variant="hero" size="lg">
                   Shop Women
@@ -95,10 +95,10 @@ const HeroSection: React.FC = () => {
 
           {/* Image */}
           <div
-            className="relative animate-slide-up h-full flex items-center justify-center"
-            style={{ animationDelay: '0.3s', maxHeight: 'calc(100vh - 10rem)' }}
+            className="relative animate-slide-up h-full flex items-center justify-center mt-8 lg:mt-0"
+            style={{ animationDelay: '0.3s' }}
           >
-            <div className="relative w-full overflow-hidden rounded-2xl shadow-elegant bg-black" style={{ maxHeight: 'calc(100vh - 12rem)' }}>
+            <div className="relative w-full overflow-hidden rounded-2xl shadow-elegant bg-black max-h-[400px] md:max-h-[500px] lg:max-h-[calc(100vh-12rem)]">
               <img
                 src={heroImage}
                 alt="Couple in Traditional Ethnic Wear"

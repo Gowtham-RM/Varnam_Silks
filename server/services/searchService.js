@@ -8,21 +8,33 @@ const stemmer = natural.PorterStemmer;
 
 // Dictionary map to capture synonymous variations
 const SYNONYMS = {
-    'tshirt': ['t-shirt', 'tee', 't shirt'],
-    't-shirt': ['tshirt', 'tee', 't shirt'],
-    'tee': ['tshirt', 't-shirt', 't shirt'],
+    'tshirt': ['t-shirt', 'tee', 't shirt', 'tees'],
+    't-shirt': ['tshirt', 'tee', 't shirt', 'tees'],
+    'tee': ['tshirt', 't-shirt', 't shirt', 'tees'],
+    'shirt': ['shirts', 'oxford', 'dress shirt', 'formal shirt'],
     'kurta': ['kurti', 'kurtas', 'kurtis'],
     'kurti': ['kurta', 'kurtas', 'kurtis'],
-    'pant': ['pants', 'trouser', 'trousers', 'bottoms'],
+    'pant': ['pants', 'trouser', 'trousers', 'bottoms', 'chinos'],
     'trouser': ['pant', 'pants', 'trousers', 'bottoms'],
-    'sari': ['saree', 'sarees'],
+    'chino': ['chinos', 'pant', 'pants'],
+    'jacket': ['jackets', 'coat', 'blazer'],
+    'dress': ['dresses', 'gown', 'frock'],
     'saree': ['sari', 'sarees'],
-    'men': ['mens', 'male'],
-    'women': ['womens', 'female', 'ladies'],
-    'kids': ['kid', 'child', 'children', 'boys', 'girls', 'boy', 'girl', 'infant']
+    'sari': ['saree', 'sarees'],
+    'silk': ['silky', 'satin'],
+    'cotton': ['cottony', 'organic cotton'],
+    'denim': ['jeans', 'jean'],
+    'jean': ['jeans', 'denim'],
+    'white': ['ivory', 'cream', 'off-white', 'off white'],
+    'black': ['dark', 'ebony'],
+    'blue': ['navy', 'azure', 'indigo'],
+    'red': ['crimson', 'maroon', 'burgundy'],
+    'men': ['mens', 'male', 'gents'],
+    'women': ['womens', 'female', 'ladies', 'womans'],
+    'kids': ['kid', 'child', 'children', 'boys', 'girls', 'boy', 'girl', 'infant', 'junior']
 };
 
-const KNOWN_COLORS = ['black', 'white', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'grey', 'gray', 'orange', 'brown', 'navy', 'maroon', 'gold', 'silver', 'beige', 'peach'];
+const KNOWN_COLORS = ['black', 'white', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'grey', 'gray', 'orange', 'brown', 'navy', 'maroon', 'gold', 'silver', 'beige', 'peach', 'cream', 'ivory', 'tan', 'khaki', 'crimson', 'burgundy', 'azure', 'indigo', 'olive', 'lime', 'magenta', 'cyan', 'teal'];
 
 // Map to identify specific category intents from tokens
 const CATEGORY_MAP = {
@@ -151,6 +163,11 @@ export const performSmartSearch = async (queryParams) => {
     let baseTokens = tokenizer.tokenize(searchTerm.toLowerCase()) || [];
     if (baseTokens.length === 0) baseTokens = [searchTerm.toLowerCase()]; // Fallback if tokenizer stripped everything
 
+    // Special handling for compound words that shouldn't be split
+    const compoundWords = ['t-shirt', 'off-white', 'off white', 'sky blue', 'light blue', 'dark blue'];
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const foundCompound = compoundWords.find(cw => lowerSearchTerm.includes(cw));
+    
     // Filter out common english stop-words ("for", "with", "the", etc.)
     const filteredTokens = baseTokens.filter(t => !stopwords.includes(t));
 
@@ -177,9 +194,10 @@ export const performSmartSearch = async (queryParams) => {
             SYNONYMS[token].forEach(syn => group.add(syn));
         }
 
-        // Return as An OR Block Regex String: "(token1|stem1|synonym1)"
-        // We use \b at the start to ensure we aren't matching letters inside words (e.g., 't' inside 'Printed')
-        return `(\\b${Array.from(group).join('|\\b')})`;
+        // Return as An OR Block Regex String
+        // We use word boundaries more loosely to catch partial matches
+        // e.g., 'shirt' will match 'shirts', 'T-Shirt', etc.
+        return `(${Array.from(group).join('|')})`;
     });
 
     // Combine tokens into a regex that requires ALL token groups to appear somewhere in the string
@@ -333,11 +351,15 @@ export const performSmartSearch = async (queryParams) => {
 
         // Map `_id` to `id` exactly as the standard routes do
         products = products.map(p => {
+            if (!p || !p._id) {
+                console.error('searchService: Invalid product or missing _id', p);
+                return null;
+            }
             p.id = p._id.toString();
             p._id = undefined;
             p.colorImages = p.colorImages || [];
             return p;
-        });
+        }).filter(p => p !== null);
 
         // Generate Autocomplete Text Suggestions dynamically
         // e.g., user types "men" -> Suggest "Mens Shirts", "Mens T-Shirts"
@@ -524,7 +546,7 @@ export const performSmartSearch = async (queryParams) => {
         });
     });
 
-    if (bestMatch && highestJaro > 0.8) {
+    if (bestMatch && highestJaro > 0.75) {
         suggestion = bestMatch;
     }
 

@@ -165,6 +165,10 @@ const AdminProductForm: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const preventNumberInputScroll = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.currentTarget.blur();
+  };
+
   const handleCategoryChange = (value: string) => {
     setFormData((prev) => ({
       ...prev,
@@ -491,6 +495,7 @@ const AdminProductForm: React.FC = () => {
                         />
                       ) : (
                         <Select
+                          key={`fabric-${formData.category}-${formData.subCategory}`}
                           value={formData.fabric}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, fabric: value }))}
                         >
@@ -527,6 +532,7 @@ const AdminProductForm: React.FC = () => {
                         />
                       ) : (
                         <Select
+                          key={`fit-${formData.category}-${formData.subCategory}`}
                           value={formData.fit}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, fit: value }))}
                         >
@@ -563,6 +569,7 @@ const AdminProductForm: React.FC = () => {
                         />
                       ) : (
                         <Select
+                          key={`pattern-${formData.category}-${formData.subCategory}`}
                           value={formData.pattern}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, pattern: value }))}
                         >
@@ -599,6 +606,7 @@ const AdminProductForm: React.FC = () => {
                         />
                       ) : (
                         <Select
+                          key={`borderType-${formData.category}-${formData.subCategory}`}
                           value={formData.borderType}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, borderType: value }))}
                         >
@@ -635,6 +643,7 @@ const AdminProductForm: React.FC = () => {
                         />
                       ) : (
                         <Select
+                          key={`occasion-${formData.category}-${formData.subCategory}`}
                           value={formData.occasion}
                           onValueChange={(value) => setFormData(prev => ({ ...prev, occasion: value }))}
                         >
@@ -670,6 +679,7 @@ const AdminProductForm: React.FC = () => {
                   type="number"
                   value={formData.price}
                   onChange={handleInputChange}
+                  onWheel={preventNumberInputScroll}
                   className="mt-1.5"
                   required
                 />
@@ -682,6 +692,7 @@ const AdminProductForm: React.FC = () => {
                   type="number"
                   value={formData.originalPrice}
                   onChange={handleInputChange}
+                  onWheel={preventNumberInputScroll}
                   className="mt-1.5"
                   placeholder="Optional"
                 />
@@ -800,8 +811,10 @@ const AdminProductForm: React.FC = () => {
                               <Input
                                 type="number"
                                 min="0"
+                                step="1"
                                 value={colorStock}
                                 onChange={(e) => handleSizeColorStockChange(sizeObj.size, color, e.target.value)}
+                                onWheel={preventNumberInputScroll}
                                 className="h-8"
                               />
                             </div>

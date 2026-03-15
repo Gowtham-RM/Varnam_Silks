@@ -7,7 +7,14 @@ const router = express.Router();
 
 // Transform MongoDB document to frontend format
 const transformProduct = (product) => {
-  const obj = product.toObject();
+  if (!product || !product._id) {
+    console.error('transformProduct: Invalid product or missing _id', product);
+    return null;
+  }
+  
+  // Handle both Mongoose documents and plain objects
+  const obj = typeof product.toObject === 'function' ? product.toObject() : product;
+  
   return {
     ...obj,
     id: obj._id.toString(),
@@ -23,7 +30,7 @@ import { performSmartSearch } from '../services/searchService.js';
 router.get('/', async (req, res) => {
   try {
     const products = await Product.find();
-    const transformedProducts = products.map(transformProduct);
+    const transformedProducts = products.map(transformProduct).filter(p => p !== null);
     res.json(transformedProducts);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -34,6 +41,14 @@ router.get('/', async (req, res) => {
 router.get('/search', async (req, res) => {
   try {
     const result = await performSmartSearch(req.query);
+    
+    // Transform products in the search result to ensure consistent format
+    if (result.products && Array.isArray(result.products)) {
+      result.products = result.products
+        .map(transformProduct)
+        .filter(p => p !== null);
+    }
+    
     res.json(result);
   } catch (error) {
     console.error('Search error:', error);
@@ -59,7 +74,7 @@ router.get('/:id/recommendations', async (req, res) => {
     const recommendations = await getRecommendations(targetProduct, allProducts);
 
     // Transform before sending
-    const transformed = recommendations.map(transformProduct);
+    const transformed = recommendations.map(transformProduct).filter(p => p !== null);
     res.json(transformed);
 
   } catch (error) {
@@ -112,7 +127,8 @@ router.get('/:id/also-bought', async (req, res) => {
     const frequentProducts = Object.values(productFrequency)
       .sort((a, b) => b.count - a.count)
       .slice(0, 4)
-      .map(item => transformProduct(item.product));
+      .map(item => transformProduct(item.product))
+      .filter(p => p !== null); // Filter out any null results
 
     res.json(frequentProducts);
 
@@ -221,15 +237,28 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Validate ObjectId to prevent cast errors
-    if (!id || id === 'undefined' || id === 'null' || !/^[0-9a-fA-F]{24}$/.test(id)) {
+    // Basic validation to prevent obvious invalid values
+    if (!id || id === 'undefined' || id === 'null' || id.trim() === '') {
       return res.status(400).json({ message: 'Invalid product ID' });
     }
     
+    // Validate MongoDB ObjectId format (24 hex characters)
+    if (!/^[0-9a-fA-F]{24}$/.test(id)) {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
+    
     const product = await Product.findById(id);
-    if (!product) return res.status(404).json({ message: 'Product not found' });
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
     res.json(transformProduct(product));
   } catch (error) {
+    console.error('Get product error:', error);
+    // Handle MongoDB CastError specifically
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid product ID format' });
+    }
     res.status(500).json({ message: error.message });
   }
 });

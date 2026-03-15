@@ -86,6 +86,9 @@ const productSchema = new mongoose.Schema({
   occasion: {
     type: String
   },
+  fabric: {
+    type: String
+  },
   stock: {
     type: Number,
     default: 0,

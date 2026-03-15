@@ -4,6 +4,30 @@ import Product from '../models/Product.js';
 
 const router = express.Router();
 
+// Transform MongoDB document to frontend format
+const transformProduct = (product) => {
+  if (!product) return null;
+  const obj = product.toObject ? product.toObject() : product;
+  return {
+    ...obj,
+    id: obj._id?.toString() || obj.id,
+    _id: undefined
+  };
+};
+
+// Transform order to include transformed products
+const transformOrder = (order) => {
+  const obj = order.toObject ? order.toObject() : order;
+  return {
+    ...obj,
+    id: obj._id?.toString() || obj.id,
+    items: obj.items?.map(item => ({
+      ...item,
+      product: transformProduct(item.product)
+    }))
+  };
+};
+
 // Get logged-in user's orders
 router.get('/my-orders', async (req, res) => {
     try {
@@ -33,7 +57,8 @@ router.get('/my-orders', async (req, res) => {
             .populate('items.product')
             .sort({ createdAt: -1 });
 
-        res.json(orders);
+        const transformedOrders = orders.map(transformOrder);
+        res.json(transformedOrders);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -46,7 +71,9 @@ router.get('/', async (req, res) => {
             .populate('items.product')
             .populate('user', 'name email')
             .sort({ createdAt: -1 });
-        res.json(orders);
+        
+        const transformedOrders = orders.map(transformOrder);
+        res.json(transformedOrders);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

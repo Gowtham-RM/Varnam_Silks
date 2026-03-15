@@ -15,6 +15,7 @@ const Shop: React.FC = () => {
   const [gridCols, setGridCols] = useState<3 | 4>(4);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchSuggestion, setSearchSuggestion] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -41,8 +42,17 @@ const Shop: React.FC = () => {
         const { data } = await api.get(endpoint);
 
         if (!ignore) {
-          // The search API returns { products: [...] }, while the base API returns an array [...]
-          setProducts(data.products || data);
+          // The search API returns { products: [...], suggestion: '...' }, while the base API returns an array [...]
+          const productsArray = data.products || data;
+          const suggestion = data.suggestion || null;
+          
+          // Filter out any products without valid IDs
+          const validProducts = productsArray.filter((p: Product) => p && p.id);
+          if (validProducts.length !== productsArray.length) {
+            console.warn(`Filtered out ${productsArray.length - validProducts.length} products with invalid IDs`);
+          }
+          setProducts(validProducts);
+          setSearchSuggestion(suggestion);
         }
       } catch (error) {
         if (!ignore) console.error('Failed to fetch products', error);
@@ -67,6 +77,11 @@ const Shop: React.FC = () => {
     };
   }, [searchParams]);
 
+  // Scroll to top when search or category changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchParams.get('search'), searchParams.get('category'), searchParams.get('sub')]);
+
   const maxPrice = useMemo(() => {
     if (products.length === 0) return 50000;
     return Math.max(...products.map((p) => p.price));
@@ -80,14 +95,22 @@ const Shop: React.FC = () => {
     colors: [],
     sortBy: (searchParams.get('sortBy') as FilterState['sortBy']) || 'newest',
   });
+  const [userAdjustedPriceRange, setUserAdjustedPriceRange] = useState(false);
 
-  // Update price range when products load
+  // Update price range when products load, but only if user hasn't manually adjusted it
   useEffect(() => {
-    if (products.length > 0 && filters.priceRange[1] === 50000) {
-      const max = Math.max(...products.map((p) => p.price));
-      setFilters((prev) => ({ ...prev, priceRange: [0, max] }));
+    if (!userAdjustedPriceRange && products.length > 0) {
+      setFilters((prev) => ({
+        ...prev,
+        priceRange: [0, maxPrice]
+      }));
     }
-  }, [products]);
+  }, [maxPrice, products.length, userAdjustedPriceRange]);
+
+  // Reset userAdjustedPriceRange when search or category changes
+  useEffect(() => {
+    setUserAdjustedPriceRange(false);
+  }, [searchParams.get('search'), searchParams.get('category'), searchParams.get('sub')]);
 
   // Update filters when URL changes
   useEffect(() => {
@@ -181,6 +204,12 @@ const Shop: React.FC = () => {
   };
 
   const handleFilterChange = (newFilters: FilterState) => {
+    // Check if user manually adjusted price range
+    if (newFilters.priceRange[0] !== filters.priceRange[0] || 
+        newFilters.priceRange[1] !== filters.priceRange[1]) {
+      setUserAdjustedPriceRange(true);
+    }
+    
     setFilters(newFilters);
     setSearchParams((prev) => {
       if (newFilters.category) {
@@ -216,9 +245,8 @@ const Shop: React.FC = () => {
 
       <div className="container py-8">
         <div className="flex gap-8">
-          {/* Filters sidebar */}
-          {/* Filters sidebar - Hidden on mobile to prevent duplicate trigger */}
-          <div className="hidden lg:block">
+          {/* Filters sidebar - Sticky on desktop for easy access while scrolling */}
+          <div className="hidden lg:block lg:sticky lg:top-20 lg:self-start lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto">
             <ProductFilters
               filters={filters}
               onFilterChange={handleFilterChange}
@@ -229,8 +257,8 @@ const Shop: React.FC = () => {
 
           {/* Products grid */}
           <div className="flex-1">
-            {/* Toolbar */}
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            {/* Toolbar - Sticky on mobile for easy filter access */}
+            <div className="sticky top-16 z-10 bg-background/95 backdrop-blur-sm py-3 -mt-3 mb-6 flex flex-wrap items-center justify-between gap-4 border-b lg:static lg:border-0 lg:bg-transparent lg:backdrop-blur-none lg:py-0 lg:mt-0">
               <div className="flex items-center gap-4 lg:hidden">
                 <ProductFilters
                   filters={filters}
@@ -295,8 +323,25 @@ const Shop: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-20">
-                <p className="text-lg font-medium text-foreground">No products found. Try another search.</p>
+              <div className="flex flex-col items-center justify-center py-20 gap-4">
+                <p className="text-lg font-medium text-foreground">No products found.</p>
+                {searchSuggestion && (
+                  <div className="flex flex-col items-center gap-2">
+                    <p className="text-muted-foreground">Did you mean:</p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearchParams(prev => {
+                          prev.set('search', searchSuggestion);
+                          return prev;
+                        });
+                      }}
+                    >
+                      {searchSuggestion}
+                    </Button>
+                  </div>
+                )}
+                <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or search terms.</p>
               </div>
             )}
           </div>

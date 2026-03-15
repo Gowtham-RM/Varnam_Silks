@@ -24,6 +24,17 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Orders = lazy(() => import("./pages/Orders"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+// Footer pages
+const AboutUs = lazy(() => import("./pages/AboutUs"));
+const ContactUs = lazy(() => import("./pages/ContactUs"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const ShippingInfo = lazy(() => import("./pages/ShippingInfo"));
+const ReturnsExchanges = lazy(() => import("./pages/ReturnsExchanges"));
+const SizeGuide = lazy(() => import("./pages/SizeGuide"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const Careers = lazy(() => import("./pages/Careers"));
+
 // Admin pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
@@ -46,7 +57,10 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <BrowserRouter>
+            <BrowserRouter future={{ 
+              v7_startTransition: true,
+              v7_relativeSplatPath: true 
+            }}>
               <ScrollToTop />
               <Suspense fallback={
                 <div className="flex h-screen items-center justify-center">
@@ -71,6 +85,17 @@ const App = () => (
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/orders" element={<Orders />} />
+
+                  {/* Footer pages */}
+                  <Route path="/about-us" element={<AboutUs />} />
+                  <Route path="/contact" element={<ContactUs />} />
+                  <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                  <Route path="/terms-of-service" element={<TermsOfService />} />
+                  <Route path="/shipping-info" element={<ShippingInfo />} />
+                  <Route path="/returns-exchanges" element={<ReturnsExchanges />} />
+                  <Route path="/size-guide" element={<SizeGuide />} />
+                  <Route path="/faq" element={<FAQ />} />
+                  <Route path="/careers" element={<Careers />} />
 
                   {/* Admin routes */}
                   <Route element={<ProtectedRoute adminOnly={true} />}>

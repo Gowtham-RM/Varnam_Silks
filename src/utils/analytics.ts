@@ -85,32 +85,47 @@ export const predictRevenue = (data: DailyRevenue[], forecastDays = 7) => {
 // 3. Trending Products (Sales Volume + recent activity)
 export const getTrendingProducts = (orders: Order[], products: Product[], limit = 5): ProductInsight[] => {
     const salesCount: Record<string, number> = {};
+    const revenueCount: Record<string, number> = {};
     const recentSalesCount: Record<string, number> = {};
     const today = new Date();
     const recentThreshold = subDays(today, 7); // Last 7 days considered "recent trend"
 
     orders.forEach(order => {
+        if (!order.orderItems || !Array.isArray(order.orderItems)) return;
+        
         const orderDate = parseISO(order.createdAt);
         const isRecent = isAfter(orderDate, recentThreshold);
 
         order.orderItems.forEach(item => {
-            salesCount[item.productId] = (salesCount[item.productId] || 0) + item.quantity;
+            // Try multiple ID fields to handle different backend formats
+            const productId = item.productId || item.product?.id || item.product?._id;
+            if (!productId) return;
+            
+            const quantity = item.quantity || 1;
+            const price = item.price || item.product?.price || 0;
+            
+            salesCount[productId] = (salesCount[productId] || 0) + quantity;
+            revenueCount[productId] = (revenueCount[productId] || 0) + (quantity * price);
+            
             if (isRecent) {
-                recentSalesCount[item.productId] = (recentSalesCount[item.productId] || 0) + item.quantity;
+                recentSalesCount[productId] = (recentSalesCount[productId] || 0) + quantity;
             }
         });
     });
 
     // Calculate score: Total Sales + (Recent Sales * 3) -> weighting recency higher
     const insights: ProductInsight[] = products.map(p => {
-        const total = salesCount[p.id] || 0;
-        const recent = recentSalesCount[p.id] || 0;
+        // Match against multiple possible ID formats
+        const productId = p.id || (p as any)._id;
+        const total = salesCount[productId] || 0;
+        const recent = recentSalesCount[productId] || 0;
         const score = total + (recent * 3);
-        const totalRevenue = total * p.price;
+        const totalRevenue = revenueCount[productId] || (total * p.price);
 
         let trend: 'up' | 'down' | 'stable' = 'stable';
-        if (recent > total / 10) trend = 'up'; // If recent sales are significant portion of total
-        if (recent === 0 && total > 0) trend = 'down';
+        if (recent > total / 10 && total > 0) trend = 'up';
+        else if (recent === 0 && total > 0) trend = 'down';
+        else if (recent > 0) trend = 'up';
 
         return {
             product: p,
@@ -121,7 +136,13 @@ export const getTrendingProducts = (orders: Order[], products: Product[], limit 
         };
     });
 
-    return insights.sort((a, b) => b.totalSales - a.totalSales).slice(0, limit);
+    // Sort by total sales, then by score if sales are equal
+    return insights
+        .sort((a, b) => {
+            if (b.totalSales !== a.totalSales) return b.totalSales - a.totalSales;
+            return b.score - a.score;
+        })
+        .slice(0, limit);
 };
 
 // 4. Low Stock Alerts
@@ -134,6 +155,8 @@ export const getProductAssociations = (orders: Order[], targetProductId: string)
     const associatedCounts: Record<string, number> = {};
 
     orders.forEach(order => {
+        if (!order.orderItems || !Array.isArray(order.orderItems)) return;
+        
         // Check if order contains target product
         const hasTarget = order.orderItems.some(item => item.productId === targetProductId);
         if (hasTarget) {
@@ -157,7 +180,10 @@ export const getCategoryDemand = (orders: Order[]) => {
     const categoryCounts: Record<string, number> = {};
 
     orders.forEach(order => {
+        if (!order.orderItems || !Array.isArray(order.orderItems)) return;
+        
         order.orderItems.forEach(item => {
+            if (!item.product || !item.product.category) return;
             const cat = item.product.category;
             categoryCounts[cat] = (categoryCounts[cat] || 0) + item.quantity;
         });

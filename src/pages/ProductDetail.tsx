@@ -189,8 +189,8 @@ const ProductDetail: React.FC = () => {
       <div className="container py-6 md:py-8 lg:py-12">
         <div className="grid gap-4 md:gap-6 lg:gap-8 lg:grid-cols-2">
           {/* Images */}
-          <div className="space-y-3 md:space-y-4">
-            <div className="relative overflow-hidden rounded-xl bg-muted sticky top-20" style={{ maxHeight: 'min(70vh, 600px)', aspectRatio: '3/4' }}>
+          <div className="space-y-3 self-start md:space-y-4 lg:sticky lg:top-20">
+            <div className="relative overflow-hidden rounded-xl bg-muted" style={{ maxHeight: 'min(70vh, 600px)', aspectRatio: '3/4' }}>
               <img
                 src={product.images[selectedImage]}
                 alt={product.name}

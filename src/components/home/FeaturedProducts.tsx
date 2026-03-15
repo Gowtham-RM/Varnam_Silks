@@ -15,7 +15,9 @@ const FeaturedProducts: React.FC = () => {
       if (!isPolling) setLoading(true);
       try {
         const { data } = await api.get('/products');
-        const featured = data.filter((p: Product) => p.featured).slice(0, 4);
+        // Filter out products without valid IDs and get featured products
+        const validProducts = data.filter((p: Product) => p && p.id);
+        const featured = validProducts.filter((p: Product) => p.featured).slice(0, 4);
         setFeaturedProducts(featured);
       } catch (error) {
         console.error('Failed to fetch products', error);

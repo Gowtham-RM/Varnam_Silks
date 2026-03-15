@@ -11,6 +11,7 @@ import analyticsRouter from './routes/analytics.js';
 import orderRoutes from './routes/orders.js';
 import cartRoutes from './routes/cart.js';
 import chatRoutes from './routes/chat.js';
+import paymentRoutes from './routes/payment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -51,6 +52,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/admin', analyticsRouter);
 app.use('/api/cart', cartRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/payment', paymentRoutes);
 
 const PORT = process.env.PORT || 5000;
 

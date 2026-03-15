@@ -68,16 +68,16 @@ const AdminSalesPrediction: React.FC = () => {
         {/* Chart Section */}
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="bg-slate-50/50">
-             <CardTitle className="font-serif flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-rose-600" /> 
+             <CardTitle className="font-serif flex items-center gap-2 text-base sm:text-xl">
+                <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-rose-600" /> 
                 Next 7 Days Forecast (All Products)
              </CardTitle>
-             <CardDescription>Predicted units sold per day for the upcoming week.</CardDescription>
+             <CardDescription className="text-xs sm:text-sm">Predicted units sold per day for the upcoming week.</CardDescription>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 px-2 sm:px-6">
             {chartData.length > 0 ? (
-               <div className="h-[300px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+               <div className="h-[250px] sm:h-[300px] w-full overflow-x-auto">
+                <ResponsiveContainer width="100%" height="100%" minWidth={300}>
                   <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                     <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
@@ -104,18 +104,18 @@ const AdminSalesPrediction: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-slate-50/50 pb-4">
-              <CardTitle className="font-serif text-lg text-emerald-700 flex items-center gap-2">
-                 <PackageSearch className="h-5 w-5" /> High Demand Products
+               <CardTitle className="font-serif text-base sm:text-lg text-emerald-700 flex items-center gap-2">
+                 <PackageSearch className="h-4 w-4 sm:h-5 sm:w-5" /> High Demand Products
               </CardTitle>
-              <CardDescription>Top performers driving continuous sales.</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Top performers driving continuous sales.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
                {data.topSelling && data.topSelling.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Total Historical Sales</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Product</TableHead>
+                        <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap">Total Historical Sales</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -138,25 +138,25 @@ const AdminSalesPrediction: React.FC = () => {
                     </TableBody>
                   </Table>
                ) : (
-                   <div className="p-6 text-center text-muted-foreground text-sm">No sales data to determine high demand products.</div>
+                   <div className="p-6 text-center text-muted-foreground text-xs sm:text-sm">No sales data to determine high demand products.</div>
                )}
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-slate-50/50 pb-4">
-               <CardTitle className="font-serif text-lg text-amber-700 flex items-center gap-2">
-                 <AlertTriangle className="h-5 w-5" /> Low Demand Products
+               <CardTitle className="font-serif text-base sm:text-lg text-amber-700 flex items-center gap-2">
+                 <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5" /> Low Demand Products
               </CardTitle>
-              <CardDescription>Products that may require marketing push or discounts.</CardDescription>
+              <CardDescription className="text-xs sm:text-sm">Products that may require marketing push or discounts.</CardDescription>
             </CardHeader>
              <CardContent className="p-0">
                {data.lowDemand && data.lowDemand.length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent">
-                        <TableHead>Product</TableHead>
-                        <TableHead className="text-right">Total Historical Sales</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Product</TableHead>
+                        <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap">Total Historical Sales</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -179,7 +179,7 @@ const AdminSalesPrediction: React.FC = () => {
                     </TableBody>
                   </Table>
                ) : (
-                    <div className="p-6 text-center text-muted-foreground text-sm">No sales data available.</div>
+                    <div className="p-6 text-center text-muted-foreground text-xs sm:text-sm">No sales data available.</div>
                )}
             </CardContent>
           </Card>
@@ -188,12 +188,12 @@ const AdminSalesPrediction: React.FC = () => {
         {/* AI Recommendations */}
         <Card className="border-slate-200 shadow-sm overflow-hidden border-rose-100">
            <CardHeader className="bg-rose-50/50 border-b border-rose-100">
-             <div className="flex items-center justify-between">
+             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                   <CardTitle className="font-serif text-xl text-rose-900">AI Inventory Recommendations</CardTitle>
-                   <CardDescription className="text-rose-700/70">Actionable insights to prevent stockouts based on next week's predicted volume.</CardDescription>
+                   <CardTitle className="font-serif text-base sm:text-xl text-rose-900">AI Inventory Recommendations</CardTitle>
+                   <CardDescription className="text-xs sm:text-sm text-rose-700/70">Actionable insights to prevent stockouts based on next week's predicted volume.</CardDescription>
                 </div>
-                 <Button variant="outline" size="sm" asChild className="hidden sm:flex border-rose-200 text-rose-700 hover:bg-rose-100">
+                 <Button variant="outline" size="sm" asChild className="border-rose-200 text-rose-700 hover:bg-rose-100">
                     <Link to="/admin/analytics#stock-alerts">Manage Inventory</Link>
                  </Button>
              </div>
@@ -203,10 +203,10 @@ const AdminSalesPrediction: React.FC = () => {
                  <Table>
                    <TableHeader className="bg-slate-50">
                      <TableRow className="hover:bg-transparent">
-                       <TableHead className="w-[30%]">Product Name</TableHead>
-                       <TableHead className="text-center">Expected Demand (7 Days)</TableHead>
-                       <TableHead className="text-center">Current Stock</TableHead>
-                       <TableHead className="text-right">Suggested Restock Qty</TableHead>
+                       <TableHead className="w-[30%] text-xs sm:text-sm">Product Name</TableHead>
+                       <TableHead className="text-center text-xs sm:text-sm whitespace-nowrap">Expected Demand (7 Days)</TableHead>
+                       <TableHead className="text-center text-xs sm:text-sm">Current Stock</TableHead>
+                       <TableHead className="text-right text-xs sm:text-sm whitespace-nowrap">Suggested Restock Qty</TableHead>
                      </TableRow>
                    </TableHeader>
                    <TableBody>
@@ -243,7 +243,7 @@ const AdminSalesPrediction: React.FC = () => {
                    </TableBody>
                  </Table>
               ) : (
-                 <div className="p-8 text-center text-muted-foreground">No inventory recommendations at this time.</div>
+                 <div className="p-8 text-center text-muted-foreground text-xs sm:text-sm">No inventory recommendations at this time.</div>
               )}
            </CardContent>
         </Card>

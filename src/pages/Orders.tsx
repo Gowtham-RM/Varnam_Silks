@@ -136,7 +136,7 @@ const Orders: React.FC = () => {
                     {order.items.map((item: any, index: number) => (
                       <div key={index} className="flex gap-4">
                         <Link
-                          to={`/product/${item.product._id}`}
+                          to={`/product/${item.product.id || item.product._id}`}
                           className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-muted"
                         >
                           <img
@@ -148,7 +148,7 @@ const Orders: React.FC = () => {
                         </Link>
                         <div className="flex-1">
                           <Link
-                            to={`/product/${item.product._id}`}
+                            to={`/product/${item.product.id || item.product._id}`}
                             className="font-medium hover:text-primary"
                           >
                             {item.product.name}

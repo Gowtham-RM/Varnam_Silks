@@ -21,10 +21,8 @@ export const ChatBot = () => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const location = useLocation();
 
-    // Hide chatbot on admin routes
-    if (location.pathname.startsWith('/admin')) {
-        return null;
-    }
+    // Hide chatbot on admin routes - check AFTER all hooks are declared
+    const isAdminRoute = location.pathname.startsWith('/admin');
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -66,6 +64,11 @@ export const ChatBot = () => {
             handleSend();
         }
     };
+
+    // Don't render chatbot on admin routes
+    if (isAdminRoute) {
+        return null;
+    }
 
     return (
         <>
