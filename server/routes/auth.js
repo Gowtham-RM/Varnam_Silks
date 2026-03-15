@@ -1,9 +1,57 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
 import User from '../models/User.js';
 
 const router = express.Router();
+
+const hasSmtpConfig = () => (
+        Boolean(process.env.SMTP_HOST) &&
+        Boolean(process.env.SMTP_PORT) &&
+        Boolean(process.env.SMTP_USER) &&
+        Boolean(process.env.SMTP_PASS)
+);
+
+const createTransporter = () => {
+        if (!hasSmtpConfig()) return null;
+
+        return nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: Number(process.env.SMTP_PORT),
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                        user: process.env.SMTP_USER,
+                        pass: process.env.SMTP_PASS,
+                },
+        });
+};
+
+const sendResetEmail = async (toEmail, resetLink) => {
+        const transporter = createTransporter();
+        if (!transporter) return false;
+
+        const fromEmail = process.env.SMTP_FROM || process.env.SMTP_USER;
+        await transporter.sendMail({
+                from: fromEmail,
+                to: toEmail,
+                subject: 'Reset your Varnam Silks password',
+                text: `We received a request to reset your password. Use this link within 1 hour: ${resetLink}`,
+                html: `
+                    <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #222;">
+                        <h2>Reset your password</h2>
+                        <p>We received a request to reset your Varnam Silks password.</p>
+                        <p>
+                            <a href="${resetLink}" style="display: inline-block; padding: 10px 14px; background: #e11d48; color: #fff; text-decoration: none; border-radius: 6px;">Reset Password</a>
+                        </p>
+                        <p>If you did not request this, you can safely ignore this email.</p>
+                        <p>This link expires in 1 hour.</p>
+                    </div>
+                `,
+        });
+
+        return true;
+};
 
 // Register
 router.post('/register', async (req, res) => {
@@ -126,10 +174,21 @@ router.post('/forgot-password', async (req, res) => {
             { expiresIn: '1h' }
         );
 
-        // In production, send email with reset link
-        // For now, just return success
-        console.log(`Password reset token for ${email}: ${resetToken}`);
-        console.log(`Reset link: ${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${resetToken}`);
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+        const resetLink = `${frontendUrl}/reset-password?token=${resetToken}`;
+
+        try {
+            const emailSent = await sendResetEmail(email, resetLink);
+            if (!emailSent) {
+                console.warn('SMTP not configured. Password reset email was not sent.');
+                console.log(`Password reset token for ${email}: ${resetToken}`);
+                console.log(`Reset link: ${resetLink}`);
+            }
+        } catch (mailError) {
+            console.error('Failed to send reset email:', mailError.message);
+            console.log(`Password reset token for ${email}: ${resetToken}`);
+            console.log(`Reset link: ${resetLink}`);
+        }
 
         res.json({ message: 'If an account exists with this email, a reset link has been sent' });
     } catch (error) {
