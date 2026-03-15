@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react';
+import api from '@/lib/api';
 
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
@@ -53,24 +54,13 @@ const ResetPassword = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, newPassword: password })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          navigate('/login', { state: { message: 'Password reset successful. Please login with your new password.' } });
-        }, 2000);
-      } else {
-        setError(data.message || 'Failed to reset password');
-      }
-    } catch (err) {
-      setError('Network error. Please try again.');
+      await api.post('/auth/reset-password', { token, newPassword: password });
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/login', { state: { message: 'Password reset successful. Please login with your new password.' } });
+      }, 2000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Network error. Please try again.');
     } finally {
       setLoading(false);
     }

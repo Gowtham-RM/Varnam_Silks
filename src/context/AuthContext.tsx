@@ -118,21 +118,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const forgotPassword = async (email: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const response = await fetch('/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
+      const response = await api.post('/auth/forgot-password', { email });
+      if (response.status >= 200 && response.status < 300) {
         return { success: true };
       } else {
-        return { success: false, error: data.message || 'Failed to send reset link' };
+        return { success: false, error: 'Failed to send reset link' };
       }
-    } catch (error) {
-      return { success: false, error: 'Network error. Please try again.' };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.response?.data?.message || 'Network error. Please try again.'
+      };
     }
   };
 
