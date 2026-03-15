@@ -21,6 +21,17 @@ dotenv.config({ path: join(__dirname, '..', '.env') });
 
 const app = express();
 
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+
+const validateRequiredEnv = () => {
+  const missingVars = requiredEnvVars.filter((name) => !process.env[name]);
+  if (missingVars.length > 0) {
+    console.error(`❌ Missing required environment variables: ${missingVars.join(', ')}`);
+    console.error('Set these values in Render -> Environment before deploying.');
+    process.exit(1);
+  }
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -32,11 +43,13 @@ const connectDB = async () => {
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
+    console.error('Check your MONGODB_URI and ensure MongoDB Atlas Network Access allows Render.');
     process.exit(1);
   }
 };
 
 // Connect to database
+validateRequiredEnv();
 connectDB();
 
 // Health check route
