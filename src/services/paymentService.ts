@@ -102,6 +102,8 @@ class PaymentService {
       throw new Error('Failed to load Razorpay SDK');
     }
 
+    const sanitizedContact = (userDetails.contact || '').replace(/\D/g, '').slice(-10);
+
     const options = {
       key: key,
       amount: amount * 100, // Amount in paise
@@ -113,7 +115,35 @@ class PaymentService {
       prefill: {
         name: userDetails.name,
         email: userDetails.email,
-        contact: userDetails.contact
+        contact: sanitizedContact
+      },
+      method: {
+        upi: true,
+        card: true,
+        netbanking: true,
+        wallet: true,
+      },
+      config: {
+        display: {
+          blocks: {
+            upi: {
+              name: 'Pay by UPI',
+              instruments: [{ method: 'upi' }],
+            },
+            other: {
+              name: 'Other Payment Methods',
+              instruments: [
+                { method: 'card' },
+                { method: 'netbanking' },
+                { method: 'wallet' },
+              ],
+            },
+          },
+          sequence: ['block.upi', 'block.other'],
+          preferences: {
+            show_default_blocks: false,
+          },
+        },
       },
       theme: {
         color: '#E11D48' // Your brand color (rose-600)

@@ -147,6 +147,19 @@ const Checkout: React.FC = () => {
       console.error('Razorpay error:', error);
       const backendMessage = error.response?.data?.message;
       const backendError = error.response?.data?.error;
+      const isGatewayNotConfigured =
+        error.response?.status === 503 ||
+        /not configured|add razorpay keys/i.test(backendMessage || '');
+
+      if (isGatewayNotConfigured) {
+        const fallbackMessage = 'Online payment is unavailable. Switched to UPI QR payment.';
+        setPaymentMethod('upi');
+        setPaymentGatewayError(backendMessage || fallbackMessage);
+        toast.info(fallbackMessage);
+        await handleUpiPayment();
+        return;
+      }
+
       const friendlyError = backendMessage
         ? `${backendMessage}${backendError ? ` (${backendError})` : ''}`
         : 'Failed to initiate payment';
