@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Heart, Minus, Plus, ShoppingBag, Star, Truck, RefreshCw, Shield } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductCard from '@/components/products/ProductCard';
@@ -17,6 +17,8 @@ const ProductDetail: React.FC = () => {
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const [canRate, setCanRate] = useState(false);
   const [ratingReason, setRatingReason] = useState('');
@@ -147,6 +149,14 @@ const ProductDetail: React.FC = () => {
     : 0;
 
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to add items to cart');
+      navigate('/login', {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
+
     if (!selectedSize) {
       toast.error('Please select a size');
       return;
@@ -159,6 +169,14 @@ const ProductDetail: React.FC = () => {
   };
 
   const handleBuyNow = () => {
+    if (!isAuthenticated) {
+      toast.error('Please login to continue');
+      navigate('/login', {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
+
     if (!selectedSize || !selectedColor) {
       toast.error('Please select size and color');
       return;

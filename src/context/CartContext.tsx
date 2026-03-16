@@ -82,34 +82,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toast.error('Failed to add item to cart');
       }
     } else {
-      // Local Logic
-      setItems(prev => {
-        const existingItem = prev.find(
-          item => item.productId === product.id && item.size === size && item.color === color
-        );
-
-        if (existingItem) {
-          toast.success('Cart updated!');
-          return prev.map(item =>
-            item.id === existingItem.id
-              ? { ...item, quantity: item.quantity + quantity }
-              : item
-          );
-        }
-
-        toast.success('Added to cart!');
-        return [
-          ...prev,
-          {
-            id: `cart-${Date.now()}`,
-            productId: product.id,
-            product,
-            quantity,
-            size,
-            color,
-          },
-        ];
-      });
+      toast.error('Please login to add items to cart');
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Star, Heart, ShoppingBag, Eye, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Product } from '@/types';
@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +20,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const { addToCart } = useCart();
   const { toggleWishlist, isInWishlist } = useWishlist();
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Defensive check: Ensure product has a valid id
   if (!product || !product.id) {
@@ -34,6 +39,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, className }) => {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isAuthenticated) {
+      toast.error('Please login to add items to cart');
+      navigate('/login', {
+        state: { from: `${location.pathname}${location.search}` },
+      });
+      return;
+    }
+
     // Add with default size and color
     const defaultSize = product.sizes && product.sizes.length > 0 ? product.sizes[0].size : 'N/A';
     const defaultColor = product.colors && product.colors.length > 0 ? product.colors[0] : 'N/A';
