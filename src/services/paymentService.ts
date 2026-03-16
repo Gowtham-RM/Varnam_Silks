@@ -104,6 +104,8 @@ class PaymentService {
 
     const sanitizedContact = (userDetails.contact || '').replace(/\D/g, '').slice(-10);
 
+    const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
     const options = {
       key: key,
       amount: amount * 100, // Amount in paise
@@ -123,27 +125,9 @@ class PaymentService {
         netbanking: true,
         wallet: true,
       },
-      config: {
-        display: {
-          blocks: {
-            upi: {
-              name: 'Pay by UPI',
-              instruments: [{ method: 'upi' }],
-            },
-            other: {
-              name: 'Other Payment Methods',
-              instruments: [
-                { method: 'card' },
-                { method: 'netbanking' },
-                { method: 'wallet' },
-              ],
-            },
-          },
-          sequence: ['block.upi', 'block.other'],
-          preferences: {
-            show_default_blocks: false,
-          },
-        },
+      upi: {
+        // Intent opens installed UPI apps on mobile; collect works reliably on desktop.
+        flow: isMobileDevice ? 'intent' : 'collect',
       },
       theme: {
         color: '#E11D48' // Your brand color (rose-600)
