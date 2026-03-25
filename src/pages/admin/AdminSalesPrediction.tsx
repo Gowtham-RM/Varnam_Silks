@@ -54,8 +54,20 @@ const AdminSalesPrediction: React.FC = () => {
     acc[cur.date] = (acc[cur.date] || 0) + cur.units;
     return acc;
   }, {});
-  
-  const chartData = Object.entries(aggregated7Day).map(([date, units]) => ({ date, units }));
+
+  const chartData = Object.entries(aggregated7Day)
+    .map(([date, units]) => {
+      const parsed = new Date(date);
+      return {
+        date,
+        units,
+        sortTime: Number.isNaN(parsed.getTime()) ? 0 : parsed.getTime(),
+        label: Number.isNaN(parsed.getTime())
+          ? date
+          : parsed.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+      };
+    })
+    .sort((a, b) => a.sortTime - b.sortTime);
 
   return (
     <AdminLayout>
@@ -80,7 +92,7 @@ const AdminSalesPrediction: React.FC = () => {
                 <ResponsiveContainer width="100%" height="100%" minWidth={300}>
                   <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                    <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                    <XAxis dataKey="label" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                     <Tooltip 
                        contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { getSimulatedData } from '@/utils/simulatedData';
 import { fetchRealAdminStats } from '@/services/adminService';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { products as mockProducts, mockUsers } from "@/data/mockData";
 import api from '@/lib/api';
 import { Loader2 } from 'lucide-react';
 import {
@@ -22,7 +21,7 @@ import {
     BarChart, Bar, Area, AreaChart, PieChart, Pie, Cell
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { TrendingUp, AlertTriangle, Package, DollarSign, Activity } from "lucide-react";
+import { TrendingUp, AlertTriangle, Package, DollarSign, Activity, ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Chart configurations for shadcn/ui charts
@@ -36,6 +35,17 @@ const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 
 const SmartInsights = () => {
+    const { hash } = useLocation();
+
+    // Scroll to stock-alerts section when navigated here with #stock-alerts hash
+    useEffect(() => {
+        if (hash === '#stock-alerts') {
+            setTimeout(() => {
+                document.getElementById('stock-alerts')?.scrollIntoView({ behavior: 'smooth' });
+            }, 150);
+        }
+    }, [hash]);
+
     const [analyticsData, setAnalyticsData] = useState<{
         revenueData: DailyRevenue[];
         forecastData: DailyRevenue[];
@@ -48,6 +58,25 @@ const SmartInsights = () => {
         activeProductsCount: number;
         activeCategoriesCount: number;
     } | null>(null);
+    const [expandedLowStock, setExpandedLowStock] = useState<Record<string, boolean>>({});
+
+    const toggleLowStock = (id: string) => {
+        setExpandedLowStock(prev => ({ ...prev, [id]: !prev[id] }));
+    };
+
+    const groupedLowStock = useMemo(() => {
+        if (!analyticsData?.lowStock?.length) return [];
+
+        return Object.values(
+            analyticsData.lowStock.reduce((acc: Record<string, any>, item: any) => {
+                if (!acc[item.id]) {
+                    acc[item.id] = { ...item, variants: [] };
+                }
+                acc[item.id].variants.push(item);
+                return acc;
+            }, {})
+        );
+    }, [analyticsData?.lowStock]);
 
     useEffect(() => {
         const loadAnalytics = async () => {
@@ -63,8 +92,8 @@ const SmartInsights = () => {
                     date: order.createdAt // map createdAt to date for compatibility with some utils
                 }));
 
-                // Try to get real products
-                let currentProducts = mockProducts;
+                // Load products from backend
+                let currentProducts: any[] = [];
                 let lowStockFromBackend: any[] = [];
                 try {
                     const stats = await fetchRealAdminStats();
@@ -75,7 +104,13 @@ const SmartInsights = () => {
                         lowStockFromBackend = stats.lowStockProducts;
                     }
                 } catch (e) {
-                    console.warn("Failed to load real products for analytics", e);
+                    console.warn("Failed to load admin stats for analytics, retrying with /products", e);
+                    try {
+                        const productsResponse = await api.get('/products');
+                        currentProducts = Array.isArray(productsResponse.data) ? productsResponse.data : [];
+                    } catch (productsError) {
+                        console.warn("Failed to load products for analytics", productsError);
+                    }
                 }
 
                 const revenue = getRevenueAnalytics(history, 30);
@@ -165,7 +200,10 @@ const SmartInsights = () => {
                         </CardContent>
                     </Card>
                 </Link>
-                <Link to="/admin/products" className="transition-transform hover:scale-[1.02]">
+                <div
+                    className="transition-transform hover:scale-[1.02] cursor-pointer"
+                    onClick={() => document.getElementById('stock-alerts')?.scrollIntoView({ behavior: 'smooth' })}
+                >
                     <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
@@ -176,7 +214,7 @@ const SmartInsights = () => {
                             <p className="text-xs text-muted-foreground">Products need restocking</p>
                         </CardContent>
                     </Card>
-                </Link>
+                </div>
                 <Link to="/admin/products" className="transition-transform hover:scale-[1.02]">
                     <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -324,7 +362,8 @@ const SmartInsights = () => {
                                                 </div>
                                             </div>
                                             {/* Progress Bar */}
-                                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden ml-9">
+                                            <div className="pl-9">
+                                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
                                                 <div
                                                     className={cn(
                                                         "h-full rounded-full transition-all duration-500",
@@ -335,6 +374,7 @@ const SmartInsights = () => {
                                                     )}
                                                     style={{ width: `${percentage}%` }}
                                                 />
+                                            </div>
                                             </div>
                                         </div>
                                     );
@@ -397,33 +437,72 @@ const SmartInsights = () => {
                         <CardTitle>Stock Alerts</CardTitle>
                         <CardDescription>Items running low on inventory</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                        <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto pr-2">
-                            {analyticsData.lowStock.map((item) => (
-                                <div key={item.variantId || item.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <img
-                                            src={item.image || 'https://placehold.co/100'}
-                                            alt={item.name}
-                                            className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
-                                        />
-                                        <div>
-                                            <p className="text-sm font-medium line-clamp-1 text-slate-700">{item.name}</p>
-                                            <p className="text-xs text-muted-foreground">
-                                                {item.size && item.size !== 'N/A' && <span className="font-medium text-slate-600">{item.size} • {item.color}</span>}
-                                                {(!item.size || item.size === 'N/A') && <span className="capitalize">{item.category}</span>}
-                                            </p>
+                    <CardContent className="p-0">
+                        <div className="max-h-[400px] overflow-y-auto">
+                            {groupedLowStock.length === 0 ? (
+                                <div className="p-8 text-center text-sm text-muted-foreground">All products are well stocked</div>
+                            ) : (
+                                <div className="divide-y divide-slate-100">
+                                    {groupedLowStock.map((group: any) => (
+                                        <div key={group.id} className="flex flex-col">
+                                            <div
+                                                className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                                                onClick={() => toggleLowStock(group.id)}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <img
+                                                        src={group.image || 'https://placehold.co/100'}
+                                                        alt={group.name}
+                                                        className="h-10 w-10 rounded-lg object-cover ring-1 ring-slate-200"
+                                                    />
+                                                    <div>
+                                                        <p className="text-sm font-medium line-clamp-1 text-slate-700">{group.name}</p>
+                                                        <p className="text-xs text-muted-foreground capitalize">
+                                                            {group.category} • {group.variants.length} variant{group.variants.length !== 1 ? 's' : ''} low stock
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span
+                                                        className={cn(
+                                                            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors',
+                                                            group.variants.some((v: any) => v.stock === 0)
+                                                                ? 'bg-red-100 text-red-700'
+                                                                : 'bg-orange-100 text-orange-700'
+                                                        )}
+                                                    >
+                                                        {group.variants.some((v: any) => v.stock === 0) ? 'Out of Stock' : 'Low Stock'}
+                                                    </span>
+                                                    {expandedLowStock[group.id] ? (
+                                                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                                                    ) : (
+                                                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                                                    )}
+                                                </div>
+                                            </div>
+                                            {expandedLowStock[group.id] && (
+                                                <div className="bg-slate-50/50 p-2 pl-14 divide-y divide-slate-100 border-t border-slate-100">
+                                                    {group.variants.map((variant: any) => (
+                                                        <div key={variant.variantId || `${group.id}-${variant.size}-${variant.color}`} className="flex items-center justify-between py-2 text-sm">
+                                                            <span className="text-slate-600">
+                                                                {variant.size !== 'N/A' && <span className="font-medium">{variant.size}</span>}
+                                                                {variant.size !== 'N/A' && variant.color !== 'N/A' && ' • '}
+                                                                {variant.color !== 'N/A' && <span>{variant.color}</span>}
+                                                                {variant.size === 'N/A' && variant.color === 'N/A' && 'Default'}
+                                                            </span>
+                                                            <span className={cn(
+                                                                'font-medium',
+                                                                variant.stock === 0 ? 'text-red-600' : 'text-orange-600'
+                                                            )}>
+                                                                {variant.stock === 0 ? '0 left' : `${variant.stock} left`}
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-semibold text-orange-700 transition-colors">
-                                            {item.stock === 0 ? 'Out' : `${item.stock} left`}
-                                        </span>
-                                    </div>
+                                    ))}
                                 </div>
-                            ))}
-                            {analyticsData.lowStock.length === 0 && (
-                                <p className="text-sm text-muted-foreground text-center py-4">All products are well stocked</p>
                             )}
                         </div>
                     </CardContent>

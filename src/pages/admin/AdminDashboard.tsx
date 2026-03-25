@@ -119,7 +119,8 @@ const AdminDashboard: React.FC = () => {
       trend: "+12% from last month",
       trendUp: true,
       color: "text-blue-600",
-      gradient: "from-blue-50 to-white"
+      gradient: "from-blue-50 to-white",
+      link: undefined as string | undefined,
     },
     {
       title: 'Total Orders',
@@ -128,7 +129,8 @@ const AdminDashboard: React.FC = () => {
       trend: "+5% from last month",
       trendUp: true,
       color: "text-green-600",
-      gradient: "from-green-50 to-white"
+      gradient: "from-green-50 to-white",
+      link: '/admin/orders' as string | undefined,
     },
     {
       title: 'Total Revenue',
@@ -137,7 +139,8 @@ const AdminDashboard: React.FC = () => {
       trend: "+8% from last month",
       trendUp: true,
       color: "text-purple-600",
-      gradient: "from-purple-50 to-white"
+      gradient: "from-purple-50 to-white",
+      link: undefined as string | undefined,
     },
     {
       title: 'Low Stock Items',
@@ -146,7 +149,8 @@ const AdminDashboard: React.FC = () => {
       trend: stats.lowStockProducts.length > 0 ? "Action Needed" : "Inventory Healthy",
       trendUp: stats.lowStockProducts.length === 0,
       color: "text-orange-600",
-      gradient: "from-orange-50 to-white"
+      gradient: "from-orange-50 to-white",
+      link: '/admin/analytics#stock-alerts' as string | undefined,
     },
   ];
 
@@ -167,8 +171,9 @@ const AdminDashboard: React.FC = () => {
 
         {/* Stats grid */}
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {statCards.map((stat) => (
-            <Card key={stat.title} className={cn("overflow-hidden transition-all hover:shadow-md border-slate-200 bg-gradient-to-br", stat.gradient)}>
+          {statCards.map((stat) => {
+            const cardEl = (
+            <Card key={stat.title} className={cn("overflow-hidden transition-all hover:shadow-md border-slate-200 bg-gradient-to-br", stat.gradient, stat.link && "cursor-pointer")}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className={cn('rounded-full p-2.5 bg-white shadow-sm ring-1 ring-slate-100')}>
@@ -185,7 +190,13 @@ const AdminDashboard: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+            return stat.link ? (
+              <Link key={stat.title} to={stat.link} className="transition-transform hover:scale-[1.02]">{cardEl}</Link>
+            ) : (
+              <React.Fragment key={stat.title}>{cardEl}</React.Fragment>
+            );
+          })}
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">

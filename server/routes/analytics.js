@@ -68,10 +68,11 @@ function forecast(productSales, daysAhead) {
     const { slope, intercept } = linearRegression(points);
     const lastIdx = dates.length - 1;
     const forecasts = [];
+    const baseDate = new Date();
     for (let i = 1; i <= daysAhead; i++) {
         const x = lastIdx + i;
         const y = Math.max(0, Math.round(slope * x + intercept));
-        let forecastDate = new Date(dates[dates.length - 1]);
+        let forecastDate = new Date(baseDate);
         if (isNaN(forecastDate.getTime())) forecastDate = new Date(); // Fallback if Invalid Date
         forecastDate.setDate(forecastDate.getDate() + i);
         forecasts.push({ date: forecastDate.toISOString().split('T')[0], units: y });

@@ -15,6 +15,12 @@ export interface ProductInsight {
     totalRevenue: number;
 }
 
+const getOrderItems = (order: Order) => {
+    const legacyItems = order.orderItems;
+    const backendItems = (order as any).items;
+    return Array.isArray(legacyItems) ? legacyItems : (Array.isArray(backendItems) ? backendItems : []);
+};
+
 // 1. Calculate Daily Revenue (Last 30 days)
 export const getRevenueAnalytics = (orders: Order[], days = 30): DailyRevenue[] => {
     const result: Record<string, DailyRevenue> = {};
@@ -91,12 +97,13 @@ export const getTrendingProducts = (orders: Order[], products: Product[], limit 
     const recentThreshold = subDays(today, 7); // Last 7 days considered "recent trend"
 
     orders.forEach(order => {
-        if (!order.orderItems || !Array.isArray(order.orderItems)) return;
+        const items = getOrderItems(order);
+        if (!items.length) return;
         
         const orderDate = parseISO(order.createdAt);
         const isRecent = isAfter(orderDate, recentThreshold);
 
-        order.orderItems.forEach(item => {
+        items.forEach(item => {
             // Try multiple ID fields to handle different backend formats
             const productId = item.productId || item.product?.id || item.product?._id;
             if (!productId) return;
@@ -155,14 +162,16 @@ export const getProductAssociations = (orders: Order[], targetProductId: string)
     const associatedCounts: Record<string, number> = {};
 
     orders.forEach(order => {
-        if (!order.orderItems || !Array.isArray(order.orderItems)) return;
+        const items = getOrderItems(order);
+        if (!items.length) return;
         
         // Check if order contains target product
-        const hasTarget = order.orderItems.some(item => item.productId === targetProductId);
+        const hasTarget = items.some(item => item.productId === targetProductId || item.product?.id === targetProductId || item.product?._id === targetProductId);
         if (hasTarget) {
-            order.orderItems.forEach(item => {
-                if (item.productId !== targetProductId) {
-                    associatedCounts[item.productId] = (associatedCounts[item.productId] || 0) + 1;
+            items.forEach(item => {
+                const productId = item.productId || item.product?.id || item.product?._id;
+                if (productId && productId !== targetProductId) {
+                    associatedCounts[productId] = (associatedCounts[productId] || 0) + 1;
                 }
             });
         }
@@ -180,9 +189,10 @@ export const getCategoryDemand = (orders: Order[]) => {
     const categoryCounts: Record<string, number> = {};
 
     orders.forEach(order => {
-        if (!order.orderItems || !Array.isArray(order.orderItems)) return;
+        const items = getOrderItems(order);
+        if (!items.length) return;
         
-        order.orderItems.forEach(item => {
+        items.forEach(item => {
             if (!item.product || !item.product.category) return;
             const cat = item.product.category;
             categoryCounts[cat] = (categoryCounts[cat] || 0) + item.quantity;

@@ -40,6 +40,7 @@ const statusOptions = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelle
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
+  processing: 'bg-indigo-100 text-indigo-800',
   confirmed: 'bg-blue-100 text-blue-800',
   shipped: 'bg-purple-100 text-purple-800',
   delivered: 'bg-green-100 text-green-800',
@@ -89,16 +90,26 @@ const AdminOrders: React.FC = () => {
       order.shippingAddress?.city?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleStatusChange = (orderId: string, newStatus: string) => {
-    // In a real app, this would be an API call
-    setOrders((prev) =>
-      prev.map((order) =>
-        order._id === orderId
-          ? { ...order, status: newStatus, updatedAt: new Date().toISOString() }
-          : order
-      )
-    );
-    toast.success(`Order status updated to ${newStatus}`);
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const { data: updatedOrder } = await api.patch(`/orders/${orderId}/status`, { status: newStatus });
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === orderId ? updatedOrder : order
+        )
+      );
+
+      setSelectedOrder((prev) => {
+        if (!prev || prev._id !== orderId) return prev;
+        return updatedOrder;
+      });
+
+      toast.success(`Order status updated to ${newStatus}`);
+    } catch (error) {
+      console.error('Failed to update order status:', error);
+      toast.error('Failed to update order status');
+    }
   };
 
   return (
