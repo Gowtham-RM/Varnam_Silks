@@ -5,23 +5,36 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Briefcase, Users, TrendingUp, Heart, Upload } from 'lucide-react';
+import { Briefcase, Users, TrendingUp, Heart } from 'lucide-react';
 import { toast } from 'sonner';
+import api from '@/lib/api';
 
 const Careers: React.FC = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     position: '',
     experience: '',
-    message: ''
+    message: '',
+    resumeLink: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success('Application submitted successfully! We\'ll review it and get back to you soon.');
-    setFormData({ name: '', email: '', phone: '', position: '', experience: '', message: '' });
+
+    try {
+      setIsSubmitting(true);
+      await api.post('/public/careers', formData);
+      toast.success('Application submitted successfully! We\'ll review it and get back to you soon.');
+      setFormData({ name: '', email: '', phone: '', position: '', experience: '', message: '', resumeLink: '' });
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Unable to submit application right now. Please try again later.';
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -247,18 +260,20 @@ const Careers: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="resume">Resume/CV *</Label>
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="outline" size="sm" className="w-full">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Resume (PDF, DOC)
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Maximum file size: 5MB</p>
+                  <Label htmlFor="resumeLink">Resume Link (Google Drive/Portfolio)</Label>
+                  <Input
+                    id="resumeLink"
+                    name="resumeLink"
+                    type="url"
+                    value={formData.resumeLink}
+                    onChange={handleChange}
+                    placeholder="https://drive.google.com/..."
+                  />
+                  <p className="text-xs text-muted-foreground">Optional, but recommended for faster review.</p>
                 </div>
 
-                <Button type="submit" className="w-full">
-                  Submit Application
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Submitting...' : 'Submit Application'}
                 </Button>
               </form>
             </CardContent>

@@ -47,12 +47,29 @@ export const ChatBot = () => {
 
         try {
             const response = await api.post('/chat', { messages: newMessages });
+            console.log('Chat API response:', response.status, response.data);
+            if (!response.data?.message) {
+                throw new Error('No message in response');
+            }
             setMessages([...newMessages, { role: 'assistant', content: response.data.message }]);
-        } catch (error) {
-            console.error('Chat error:', error);
+        } catch (error: any) {
+            console.error('Chat API Error Details:', {
+                message: error?.message,
+                status: error?.response?.status,
+                data: error?.response?.data,
+                config: error?.config?.url,
+                error: error
+            });
             setMessages([
                 ...newMessages,
-                { role: 'assistant', content: 'Oops! Something went wrong. Please try again later.' }
+                { 
+                    role: 'assistant', 
+                    content: error?.response?.status === 503
+                        ? 'The AI service is not configured. Please check that GEMINI_API_KEY is set on the server.'
+                        : error?.response?.status === 429
+                        ? 'Too many requests. Please wait a moment and try again.'
+                        : 'Oops! Something went wrong. Please try again later.' 
+                }
             ]);
         } finally {
             setIsLoading(false);

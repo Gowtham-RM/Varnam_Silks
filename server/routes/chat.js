@@ -15,22 +15,29 @@ try {
 
 router.post('/', async (req, res) => {
     try {
+        console.log('[CHAT] Route called');
         const { messages } = req.body;
+        console.log('[CHAT] Messages received:', messages?.length);
 
         if (!messages || !Array.isArray(messages)) {
+            console.log('[CHAT] Invalid messages format');
             return res.status(400).json({ message: 'Messages array is required' });
         }
 
         if (!ai) {
+            console.log('[CHAT] AI not initialized');
             return res.status(503).json({ message: 'AI service is not configured (missing API key)' });
         }
 
         // Extract the latest user message to find relevant products
         const lastUserMsg = messages.filter(m => m.role === 'user').pop();
         const searchQuery = lastUserMsg ? lastUserMsg.content : '';
+        console.log('[CHAT] Search query:', searchQuery);
 
         // Only fetch top 15 relevant products to prevent exceeding Gemini Token Quota
+        console.log('[CHAT] Calling performSmartSearch...');
         const searchResult = await performSmartSearch({ q: searchQuery, limit: 15 });
+        console.log('[CHAT] Search result received, products:', searchResult?.products?.length);
         const products = searchResult.products;
 
         const productContext = products.map(p =>
@@ -78,7 +85,9 @@ Example: "Here is the link to the [White Silk Saree](/product/65a3b21c...)"
             role: msg.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: msg.content }]
         }));
+        console.log('[CHAT] Formatted contents ready');
 
+        console.log('[CHAT] Calling Gemini API...');
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: formattedContents,
@@ -87,19 +96,44 @@ Example: "Here is the link to the [White Silk Saree](/product/65a3b21c...)"
                 temperature: 0.7
             }
         });
+        console.log('[CHAT] Gemini API response received');
 
-        res.json({ message: response.text });
-    } catch (error) {
-        console.error('Chat error:', error);
-        
-        // Handle Gemini API Rate Limits gracefully
-        if (error.status === 429 || error.message?.includes('429') || error.message?.includes('quota')) {
-             return res.json({ 
-                 message: "I'm experiencing very high traffic right now and need to take a quick breather! 😅 Please try asking me again in a few minutes." 
-             });
+        if (!response?.text) {
+            console.error('[CHAT] Invalid response from Gemini API:', response);
+            return res.status(500).json({ message: 'Failed to get response from AI model' });
         }
 
-        res.status(500).json({ message: 'Failed to process chat request' });
+        console.log('[CHAT] Sending success response');
+        res.json({ message: response.text });
+    } catch (error) {
+        const errorMsg = error?.message || String(error);
+        const errorStatus = error?.status || error?.response?.status || 500;
+        
+        console.error('[CHAT] ERROR caught:', {
+            status: errorStatus,
+            message: errorMsg,
+            code: error?.code,
+            stack: error?.stack
+        });
+        
+        // Handle Gemini API Rate Limits gracefully
+        if (errorStatus === 429 || errorMsg?.includes('429') || errorMsg?.includes('quota')) {
+            console.error('[CHAT] Rate limit detected');
+            return res.status(429).json({ 
+                message: "I'm experiencing very high traffic right now! Please try again in a few minutes." 
+            });
+        }
+        
+        // Handle authentication/API key issues
+        if (errorStatus === 401 || errorStatus === 403 || errorMsg?.includes('API') || errorMsg?.includes('key')) {
+            console.error('[CHAT] API Authentication Issue - Check GEMINI_API_KEY');
+            return res.status(503).json({ message: 'AI service authentication failed. Please check server configuration.' });
+        }
+
+        console.error('[CHAT] Returning generic error response');
+        res.status(errorStatus).json({ 
+            message: 'Failed to process chat request. Please try again later.' 
+        });
     }
 });
 

@@ -12,6 +12,7 @@ import orderRoutes from './routes/orders.js';
 import cartRoutes from './routes/cart.js';
 import chatRoutes from './routes/chat.js';
 import paymentRoutes from './routes/payment.js';
+import publicRoutes from './routes/public.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,7 +48,8 @@ app.use(cors({
       return;
     }
 
-    if (allowedOrigins.includes(origin)) {
+    // Allow any localhost-like URLs (including network IPs like 10.x.x.x:5173)
+    if (origin.includes(':5173') || allowedOrigins.includes(origin)) {
       callback(null, true);
       return;
     }
@@ -89,6 +91,7 @@ app.use('/api/admin', analyticsRouter);
 app.use('/api/cart', cartRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/public', publicRoutes);
 
 const PORT = process.env.PORT || 5000;
 
